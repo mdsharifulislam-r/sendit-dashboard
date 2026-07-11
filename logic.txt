@@ -1,0 +1,5 @@
+We forgot to mention the discount and referral code management. Under Settings, we need Discount
+Management section where we can create and manage customised referral coupons or discount
+codes.
+To make it easier for you, we have already created the design, please follow the workflow as the
+image number:
