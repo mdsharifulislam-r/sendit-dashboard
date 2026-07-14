@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import { SidebarTrigger } from "@/components/ui/sidebar";
-import { 
-    Search, 
+import {
+    Search,
     TrendingUp,
     Filter,
     Download,
@@ -24,19 +24,19 @@ import {
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { 
-    DropdownMenu, 
-    DropdownMenuContent, 
-    DropdownMenuItem, 
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
     DropdownMenuTrigger,
     DropdownMenuSeparator,
     DropdownMenuLabel
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
-import { 
-    Dialog, 
-    DialogContent, 
-    DialogHeader, 
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
     DialogTitle,
     DialogTrigger,
     DialogFooter,
@@ -44,7 +44,7 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { 
+import {
     Select,
     SelectContent,
     SelectItem,
@@ -52,26 +52,26 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 
-import { 
+import {
     Sheet,
     SheetContent,
     SheetHeader,
     SheetTitle,
     SheetDescription,
 } from "@/components/ui/sheet";
-import { 
-    Tabs, 
-    TabsContent, 
-    TabsList, 
-    TabsTrigger 
+import {
+    Tabs,
+    TabsContent,
+    TabsList,
+    TabsTrigger
 } from "@/components/ui/tabs";
-import { 
-    Card, 
-    CardContent, 
-    CardHeader, 
-    CardTitle 
+import {
+    Card,
+    CardContent,
+    CardHeader,
+    CardTitle
 } from "@/components/ui/card";
-import { 
+import {
     Table,
     TableBody,
     TableCell,
@@ -80,9 +80,11 @@ import {
     TableRow,
 } from "@/components/ui/table";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { useGetTransactionsStatsQuery, useGetTransactionsListQuery } from "@/redux/apiSlices/transactionsSlice";
 
 export default function PaymentWalletPage() {
     const [activeTab, setActiveTab] = useState<"transactions" | "withdrawals">("transactions");
+    const [searchTerm, setSearchTerm] = useState("");
     const [showManualAction, setShowManualAction] = useState(false);
     const [manualActionType, setManualActionType] = useState<string>("");
     const [selectedUserForAction, setSelectedUserForAction] = useState<any>(null);
@@ -91,6 +93,15 @@ export default function PaymentWalletPage() {
     const [selectedItem, setSelectedItem] = useState<any>(null);
     const [showAuditLogs, setShowAuditLogs] = useState(false);
     const [showFilters, setShowFilters] = useState(false);
+
+    // API Integration
+    const { data: statsResponse } = useGetTransactionsStatsQuery(undefined);
+    const { data: listResponse, isLoading } = useGetTransactionsListQuery({
+        withdraw: activeTab === "withdrawals",
+        searchTerm
+    });
+    const statsData = statsResponse?.data;
+    const transactionsList = listResponse?.data || [];
 
     // Mock Users for Search
     const mockUsers = [
@@ -101,12 +112,12 @@ export default function PaymentWalletPage() {
         { id: "USR005", name: "Robert Wilson", email: "r.wilson@example.com", balance: "$3,420.00", avatar: "RW" },
     ];
 
-    const filteredUsers = userSearchTerm.length > 1 
-        ? mockUsers.filter(u => 
-            u.name.toLowerCase().includes(userSearchTerm.toLowerCase()) || 
+    const filteredUsers = userSearchTerm.length > 1
+        ? mockUsers.filter(u =>
+            u.name.toLowerCase().includes(userSearchTerm.toLowerCase()) ||
             u.email.toLowerCase().includes(userSearchTerm.toLowerCase()) ||
             u.id.toLowerCase().includes(userSearchTerm.toLowerCase())
-          )
+        )
         : [];
 
     const handleManualAction = (type: string, user?: any) => {
@@ -127,26 +138,23 @@ export default function PaymentWalletPage() {
         { id: "LOG3", admin: "System", action: "Payout Failed", target: "WDL9873", reason: "Bank rejection", date: "Apr 17, 2026 11:45 AM", oldValue: "Processing", newValue: "Failed" },
     ];
 
+    const formatAmount = (amount: number | undefined) => {
+        if (amount === undefined) return "$0.0k";
+        const formatted = (amount / 1000).toLocaleString(undefined, {
+            minimumFractionDigits: 1,
+            maximumFractionDigits: 1
+        });
+        return `$${formatted}k`;
+    };
+
+    const totalEarningsVal = formatAmount(statsData?.total_earnings);
+    const pendingEarningsVal = formatAmount(statsData?.pending_earnings);
+    const withdrawnVal = formatAmount(statsData?.total_withdraw_earnings);
+
     const stats = [
-        { label: "Total Balance", amount: "$124,560.00", trend: "+12.5% from last month", icon: <TrendingUp className="w-4 h-4 text-blue-700" />, bg: "bg-blue-50" },
-        { label: "Pending Earnings", amount: "$48,290.00", trend: "Across 127 transactions", icon: <TrendingUp className="w-4 h-4 text-amber-700" />, bg: "bg-amber-50" },
-        { label: "Withdrawn Amount", amount: "$76,270.00", trend: "Last 30 days", icon: <TrendingUp className="w-4 h-4 text-green-700" />, bg: "bg-green-50" },
-    ];  
-
-    const transactions = [
-        { id: "TXN5432", type: "Payment", user: "Sarah Johnson", amount: "$45.00", status: "Completed", date: "Apr 18, 2026", method: "Wallet", shipmentId: "SHP-9921", sender: "Sarah Johnson", receiver: "John Doe", timeline: [{ status: "Initiated", date: "Apr 18, 10:00 AM" }, { status: "Completed", date: "Apr 18, 10:05 AM" }] },
-        { id: "TXN5431", type: "Refund", user: "Emma Williams", amount: "$25.00", status: "Pending", date: "Apr 17, 2026", method: "Stripe", shipmentId: "SHP-8812", sender: "Emma Williams", receiver: "Michael Ross", timeline: [{ status: "Refund Requested", date: "Apr 17, 02:30 PM" }] },
-        { id: "TXN5430", type: "Commission", user: "Michael Chen", amount: "$8.50", status: "Completed", date: "Apr 17, 2026", method: "System", shipmentId: "SHP-7711", sender: "Michael Chen", receiver: "Platform", timeline: [{ status: "Calculated", date: "Apr 17, 09:00 AM" }, { status: "Paid", date: "Apr 17, 09:10 AM" }] },
-        { id: "TXN5429", type: "Payment", user: "James Martinez", amount: "$120.00", status: "Failed", date: "Apr 16, 2026", method: "Card", shipmentId: "SHP-6610", sender: "James Martinez", receiver: "Alice Smith", timeline: [{ status: "Initiated", date: "Apr 16, 11:00 AM" }, { status: "Failed", date: "Apr 16, 11:02 AM" }] },
-        { id: "TXN5428", type: "Adjustment", user: "Platform Admin", amount: "$10.00", status: "Completed", date: "Apr 15, 2026", method: "Manual", shipmentId: "N/A", sender: "Platform", receiver: "Sarah Johnson", timeline: [{ status: "Manual Adjustment", date: "Apr 15, 03:00 PM" }] },
-    ];
-
-    const withdrawals = [
-        { id: "WDL9876", user: "Robert Wilson", amount: "$1,200.00", status: "Pending", date: "Apr 19, 2026", method: "Bank Transfer" },
-        { id: "WDL9875", user: "Linda Davis", amount: "$450.00", status: "Under Review", date: "Apr 18, 2026", method: "PayPal" },
-        { id: "WDL9874", user: "Kevin Lee", amount: "$890.00", status: "Processing", date: "Apr 18, 2026", method: "Bank Transfer" },
-        { id: "WDL9873", user: "Maria Garcia", amount: "$2,100.00", status: "Failed", date: "Apr 17, 2026", method: "Stripe Connect" },
-        { id: "WDL9872", user: "Thomas Wright", amount: "$320.00", status: "Rejected", date: "Apr 16, 2026", method: "Bank Transfer" },
+        { label: "Total Earnings", amount: totalEarningsVal, trend: "", icon: <TrendingUp className="w-4 h-4 text-blue-700" />, bg: "bg-blue-50" },
+        { label: "Pending Earnings", amount: pendingEarningsVal, trend: "", icon: <TrendingUp className="w-4 h-4 text-amber-700" />, bg: "bg-amber-50" },
+        { label: "Withdrawn Amount", amount: withdrawnVal, trend: "", icon: <TrendingUp className="w-4 h-4 text-green-700" />, bg: "bg-green-50" },
     ];
 
     const getStatusBadgeClass = (status: string) => {
@@ -176,7 +184,7 @@ export default function PaymentWalletPage() {
                     </div>
                     <p className="text-sm font-bold text-gray-500">Manage transactions, payouts, and manual adjustments.</p>
                 </div>
-                <div className="flex items-center gap-3">
+                {/* <div className="flex items-center gap-3">
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                             <Button variant="outline" className="border-gray-200 text-gray-700 font-bold gap-2 bg-white shadow-sm hover:bg-gray-50">
@@ -202,14 +210,14 @@ export default function PaymentWalletPage() {
                             </DropdownMenuItem>
                         </DropdownMenuContent>
                     </DropdownMenu>
-                </div>
+                </div> */}
             </div>
 
             {/* Stats Grid */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {stats.map((stat, i) => (
                     <Card key={i} className="border-none shadow-sm overflow-hidden bg-white">
-                        <CardContent className="p-6">
+                        <CardContent className="">
                             <div className="flex items-center justify-between mb-4">
                                 <div className={`p-3 rounded-xl ${stat.bg}`}>
                                     {stat.icon}
@@ -236,21 +244,21 @@ export default function PaymentWalletPage() {
             <Tabs defaultValue="transactions" onValueChange={(v) => setActiveTab(v as any)} className="space-y-6">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-2 rounded-2xl border border-gray-100 shadow-sm">
                     <TabsList className="bg-transparent border-none p-0 gap-2">
-                        <TabsTrigger 
-                            value="transactions" 
+                        <TabsTrigger
+                            value="transactions"
                             className="px-6 py-2.5 rounded-xl font-bold text-sm transition-all data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700 data-[state=active]:shadow-none"
                         >
                             Transactions
                         </TabsTrigger>
-                        <TabsTrigger 
-                            value="withdrawals" 
+                        <TabsTrigger
+                            value="withdrawals"
                             className="px-6 py-2.5 rounded-xl font-bold text-sm transition-all data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700 data-[state=active]:shadow-none"
                         >
                             Withdrawals
                         </TabsTrigger>
                     </TabsList>
-                    
-                    <div className="flex items-center gap-2 px-2">
+
+                    {/* <div className="flex items-center gap-2 px-2">
                         <Button 
                             onClick={() => setShowFilters(true)}
                             variant="ghost" 
@@ -270,16 +278,18 @@ export default function PaymentWalletPage() {
                             <History className="w-4 h-4" />
                             Audit Logs
                         </Button>
-                    </div>
+                    </div> */}
                 </div>
 
                 {/* Search & Action Bar */}
                 <div className="flex flex-col md:flex-row gap-4 items-center">
                     <div className="relative flex-1 w-full">
                         <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                        <Input 
-                            placeholder={`Search by ID, user, or amount...`} 
-                            className="pl-11 bg-white border-gray-200 rounded-2xl h-12 shadow-sm focus-visible:ring-blue-600 font-bold placeholder:text-gray-400" 
+                        <Input
+                            placeholder={`Search by ID, user, or amount...`}
+                            className="pl-11 bg-white border-gray-200 rounded-2xl h-12 shadow-sm focus-visible:ring-blue-600 font-bold placeholder:text-gray-400"
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
                         />
                     </div>
                 </div>
@@ -294,89 +304,72 @@ export default function PaymentWalletPage() {
                                     <TableHead className="px-6 h-12 text-[10px] font-bold text-gray-500 uppercase tracking-widest">Type & Method</TableHead>
                                     <TableHead className="px-6 h-12 text-[10px] font-bold text-gray-500 uppercase tracking-widest">Amount</TableHead>
                                     <TableHead className="px-6 h-12 text-[10px] font-bold text-gray-500 uppercase tracking-widest">Status</TableHead>
-                                    <TableHead className="px-6 h-12 text-[10px] font-bold text-gray-500 uppercase tracking-widest text-right">Actions</TableHead>
+                                    {/* <TableHead className="px-6 h-12 text-[10px] font-bold text-gray-500 uppercase tracking-widest text-right">Actions</TableHead> */}
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {transactions.map((txn) => (
-                                    <TableRow key={txn.id} className="hover:bg-gray-50/50 transition-colors border-b border-gray-50 group">
-                                        <TableCell className="px-6 py-4">
-                                            <div className="space-y-0.5">
-                                                <p className="text-sm font-bold text-gray-900">{txn.id}</p>
-                                                <p className="text-[10px] font-bold text-gray-500 uppercase">{txn.date}</p>
-                                            </div>
-                                        </TableCell>
-                                        <TableCell className="px-6 py-4">
-                                            <div className="flex items-center gap-3">
-                                                <Avatar className="h-8 w-8 rounded-lg border border-gray-100">
-                                                    <AvatarFallback className="bg-blue-50 text-blue-700 text-[10px] font-bold">
-                                                        {txn.user.split(' ').map(n => n[0]).join('')}
-                                                    </AvatarFallback>
-                                                </Avatar>
-                                                <span className="text-sm text-gray-900 font-bold">{txn.user}</span>
-                                            </div>
-                                        </TableCell>
-                                        <TableCell className="px-6 py-4">
-                                            <div className="space-y-0.5">
-                                                <p className="text-sm text-gray-900 font-bold">{txn.type}</p>
-                                                <p className="text-[10px] text-gray-500 font-bold uppercase">{txn.method}</p>
-                                            </div>
-                                        </TableCell>
-                                        <TableCell className="px-6 py-4">
-                                            <span className="text-sm font-bold text-gray-900">{txn.amount}</span>
-                                        </TableCell>
-                                        <TableCell className="px-6 py-4">
-                                            <Badge className={getStatusBadgeClass(txn.status)}>
-                                                {txn.status}
-                                            </Badge>
-                                        </TableCell>
-                                        <TableCell className="px-6 py-4 text-right">
-                                            <div className="flex items-center justify-end gap-2">
-                                                {txn.status === "Pending" && (
-                                                    <div className="flex items-center gap-2">
-                                                        <Button size="sm" className="h-8 bg-green-700 hover:bg-green-700 text-white font-bold text-[10px] px-3 rounded-lg shadow-none hover:shadow-none transform-none transition-none select-none">Approve</Button>
-                                                        <Button size="sm" variant="outline" className="h-8 border-red-200 hover:border-red-200 text-red-700 hover:text-red-700 hover:bg-transparent font-bold text-[10px] px-3 rounded-lg shadow-none hover:shadow-none transform-none transition-none select-none">Reject</Button>
-                                                    </div>
-                                                )}
-                                                <DropdownMenu>
-                                                    <DropdownMenuTrigger asChild>
-                                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-400 hover:text-gray-900">
-                                                            <MoreVertical className="w-4 h-4" />
-                                                        </Button>
-                                                    </DropdownMenuTrigger>
-                                                    <DropdownMenuContent align="end" className="w-56">
-                                                         <DropdownMenuLabel className="font-bold">Transaction Actions</DropdownMenuLabel>
-                                                         <DropdownMenuSeparator />
-                                                         <DropdownMenuItem onClick={() => handleViewDetails(txn)} className="font-bold gap-2 cursor-pointer">
-                                                             <ExternalLink className="w-4 h-4" /> View Details
-                                                         </DropdownMenuItem>
-                                                         
-                                                         <DropdownMenuSeparator />
-                                                         <DropdownMenuLabel className="text-[10px] font-bold text-gray-400 uppercase px-2 py-1.5">Quick Manual Actions</DropdownMenuLabel>
-                                                         
-                                                         <DropdownMenuItem onClick={() => handleManualAction("Refund", txn)} className="font-bold gap-2 cursor-pointer text-amber-700">
-                                                             <RotateCcw className="w-4 h-4" /> Issue Refund
-                                                         </DropdownMenuItem>
-                                                         <DropdownMenuItem onClick={() => handleManualAction("Credit", txn)} className="font-bold gap-2 cursor-pointer text-blue-700">
-                                                             <Plus className="w-4 h-4" /> Credit Wallet
-                                                         </DropdownMenuItem>
-                                                         <DropdownMenuItem onClick={() => handleManualAction("Deduct", txn)} className="font-bold gap-2 cursor-pointer text-red-700">
-                                                             <XCircle className="w-4 h-4" /> Deduct Wallet
-                                                         </DropdownMenuItem>
-                                                         <DropdownMenuItem onClick={() => handleManualAction("Adjustment", txn)} className="font-bold gap-2 cursor-pointer">
-                                                             <Settings2 className="w-4 h-4" /> Manual Adjustment
-                                                         </DropdownMenuItem>
-                                                         
-                                                         <DropdownMenuSeparator />
-                                                         <DropdownMenuItem onClick={() => handleManualAction("Freeze Wallet", txn)} className="font-bold gap-2 cursor-pointer text-red-700">
-                                                             <AlertCircle className="w-4 h-4" /> Freeze User Wallet
-                                                         </DropdownMenuItem>
-                                                     </DropdownMenuContent>
-                                                </DropdownMenu>
-                                            </div>
+                                {isLoading ? (
+                                    Array.from({ length: 5 }).map((_, i) => (
+                                        <TableRow key={i} className="animate-pulse">
+                                            <TableCell className="px-6 py-4"><div className="h-4 bg-gray-200 rounded w-20"></div></TableCell>
+                                            <TableCell className="px-6 py-4"><div className="h-4 bg-gray-200 rounded w-24"></div></TableCell>
+                                            <TableCell className="px-6 py-4"><div className="h-4 bg-gray-200 rounded w-24"></div></TableCell>
+                                            <TableCell className="px-6 py-4"><div className="h-4 bg-gray-200 rounded w-16"></div></TableCell>
+                                            <TableCell className="px-6 py-4"><div className="h-5 bg-gray-200 rounded-full w-14"></div></TableCell>
+                                        </TableRow>
+                                    ))
+                                ) : transactionsList.length === 0 ? (
+                                    <TableRow>
+                                        <TableCell colSpan={5} className="px-6 py-8 text-center text-sm font-semibold text-gray-500">
+                                            No transactions found
                                         </TableCell>
                                     </TableRow>
-                                ))}
+                                ) : (
+                                    transactionsList.map((txn: any) => {
+                                        const txnId = txn.trx_id || txn._id;
+                                        const txnDate = txn.createdAt ? new Date(txn.createdAt).toLocaleDateString() : "N/A";
+                                        const userName = txn.owner?.name || "N/A";
+                                        const userInitials = userName.split(' ').map((n: string) => n[0]).join('');
+
+                                        return (
+                                            <TableRow key={txn._id} className="hover:bg-gray-50/50 transition-colors border-b border-gray-50 group">
+                                                <TableCell className="px-6 py-4">
+                                                    <div className="space-y-0.5">
+                                                        <p className="text-sm font-bold text-gray-900">{txnId}</p>
+                                                        <p className="text-[10px] font-bold text-gray-500 uppercase">{txnDate}</p>
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell className="px-6 py-4">
+                                                    <div className="flex items-center gap-3">
+                                                        <Avatar className="h-8 w-8 rounded-lg border border-gray-100">
+                                                            <AvatarFallback className="bg-blue-50 text-blue-700 text-[10px] font-bold">
+                                                                {userInitials}
+                                                            </AvatarFallback>
+                                                        </Avatar>
+                                                        <span className="text-sm text-gray-900 font-bold">{userName}</span>
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell className="px-6 py-4">
+                                                    <div className="space-y-0.5">
+                                                        <p className="text-sm text-gray-900 font-bold">{txn.type || "Payment"}</p>
+                                                        <p className="text-[10px] text-gray-500 font-bold uppercase">{txn.payment_status || "Debit"}</p>
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell className="px-6 py-4">
+                                                    <span className="text-sm font-bold text-gray-900">${txn.amount}</span>
+                                                </TableCell>
+                                                <TableCell className="px-6 py-4">
+                                                    <Badge className={getStatusBadgeClass(txn.status || "Completed")}>
+                                                        {txn.status || "Completed"}
+                                                    </Badge>
+                                                </TableCell>
+                                                {/* <TableCell className="px-6 py-4 text-right">
+                                                    ...
+                                                </TableCell> */}
+                                            </TableRow>
+                                        );
+                                    })
+                                )}
                             </TableBody>
                         </Table>
                     </div>
@@ -392,91 +385,69 @@ export default function PaymentWalletPage() {
                                     <TableHead className="px-6 h-12 text-[10px] font-bold text-gray-500 uppercase tracking-widest">Payout Method</TableHead>
                                     <TableHead className="px-6 h-12 text-[10px] font-bold text-gray-500 uppercase tracking-widest">Amount</TableHead>
                                     <TableHead className="px-6 h-12 text-[10px] font-bold text-gray-500 uppercase tracking-widest">Status</TableHead>
-                                    <TableHead className="px-6 h-12 text-[10px] font-bold text-gray-500 uppercase tracking-widest text-right">Actions</TableHead>
+                                    {/* <TableHead className="px-6 h-12 text-[10px] font-bold text-gray-500 uppercase tracking-widest text-right">Actions</TableHead> */}
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {withdrawals.map((wdl) => (
-                                    <TableRow key={wdl.id} className="hover:bg-gray-50/50 transition-colors border-b border-gray-50 group">
-                                        <TableCell className="px-6 py-4">
-                                            <div className="space-y-0.5">
-                                                <p className="text-sm font-bold text-gray-900">{wdl.id}</p>
-                                                <p className="text-[10px] font-bold text-gray-500 uppercase">{wdl.date}</p>
-                                            </div>
-                                        </TableCell>
-                                        <TableCell className="px-6 py-4">
-                                            <div className="flex items-center gap-3">
-                                                <Avatar className="h-8 w-8 rounded-lg border border-gray-100">
-                                                    <AvatarFallback className="bg-blue-50 text-blue-700 text-[10px] font-bold">
-                                                        {wdl.user.split(' ').map(n => n[0]).join('')}
-                                                    </AvatarFallback>
-                                                </Avatar>
-                                                <span className="text-sm text-gray-900 font-bold">{wdl.user}</span>
-                                            </div>
-                                        </TableCell>
-                                        <TableCell className="px-6 py-4">
-                                            <span className="text-sm text-gray-900 font-bold">{wdl.method}</span>
-                                        </TableCell>
-                                        <TableCell className="px-6 py-4">
-                                            <span className="text-sm font-bold text-gray-900">{wdl.amount}</span>
-                                        </TableCell>
-                                        <TableCell className="px-6 py-4">
-                                            <Badge className={getStatusBadgeClass(wdl.status)}>
-                                                {wdl.status}
-                                            </Badge>
-                                        </TableCell>
-                                        <TableCell className="px-6 py-4 text-right">
-                                            <div className="flex items-center justify-end gap-2">
-                                                {wdl.status === "Pending" && (
-                                                    <div className="flex items-center gap-2">
-                                                        <Button size="sm" className="h-8 bg-green-700 hover:bg-green-700 text-white font-bold text-[10px] px-3 rounded-lg shadow-none hover:shadow-none transform-none transition-none select-none">Approve</Button>
-                                                        <Button size="sm" variant="outline" className="h-8 border-red-200 hover:border-red-200 text-red-700 hover:text-red-700 hover:bg-transparent font-bold text-[10px] px-3 rounded-lg shadow-none hover:shadow-none transform-none transition-none select-none">Reject</Button>
-                                                    </div>
-                                                )}
-                                                <DropdownMenu>
-                                                    <DropdownMenuTrigger asChild>
-                                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-400 hover:text-gray-900">
-                                                            <MoreVertical className="w-4 h-4" />
-                                                        </Button>
-                                                    </DropdownMenuTrigger>
-                                                    <DropdownMenuContent align="end" className="w-56">
-                                                        <DropdownMenuLabel className="font-bold">Withdrawal Actions</DropdownMenuLabel>
-                                                        <DropdownMenuSeparator />
-                                                        <DropdownMenuItem onClick={() => handleViewDetails(wdl)} className="font-bold gap-2 cursor-pointer">
-                                                            <Eye className="w-4 h-4" /> View Details
-                                                        </DropdownMenuItem>
-                                                        
-                                                        <DropdownMenuSeparator />
-                                                        <DropdownMenuLabel className="text-[10px] font-bold text-gray-400 uppercase px-2 py-1.5">Management</DropdownMenuLabel>
-                                                        
-                                                        <DropdownMenuItem className="font-bold gap-2 cursor-pointer text-green-700">
-                                                            <CheckCircle2 className="w-4 h-4" /> Mark as Paid
-                                                        </DropdownMenuItem>
-                                                        <DropdownMenuItem className="font-bold gap-2 cursor-pointer text-blue-700">
-                                                            <Clock className="w-4 h-4" /> Hold for Review
-                                                        </DropdownMenuItem>
-                                                        <DropdownMenuItem className="font-bold gap-2 cursor-pointer text-red-700">
-                                                            <XCircle className="w-4 h-4" /> Cancel Request
-                                                        </DropdownMenuItem>
-
-                                                        <DropdownMenuSeparator />
-                                                        <DropdownMenuLabel className="text-[10px] font-bold text-gray-400 uppercase px-2 py-1.5">Manual Adjustments</DropdownMenuLabel>
-                                                        
-                                                        <DropdownMenuItem onClick={() => handleManualAction("Adjustment", wdl)} className="font-bold gap-2 cursor-pointer">
-                                                            <Settings2 className="w-4 h-4" /> Manual Adjustment
-                                                        </DropdownMenuItem>
-                                                        <DropdownMenuItem onClick={() => handleManualAction("Credit", wdl)} className="font-bold gap-2 cursor-pointer text-blue-700">
-                                                            <Plus className="w-4 h-4" /> Credit User
-                                                        </DropdownMenuItem>
-                                                        <DropdownMenuItem onClick={() => handleManualAction("Freeze Wallet", wdl)} className="font-bold gap-2 cursor-pointer text-red-700">
-                                                            <AlertCircle className="w-4 h-4" /> Freeze User
-                                                        </DropdownMenuItem>
-                                                    </DropdownMenuContent>
-                                                </DropdownMenu>
-                                            </div>
+                                {isLoading ? (
+                                    Array.from({ length: 5 }).map((_, i) => (
+                                        <TableRow key={i} className="animate-pulse">
+                                            <TableCell className="px-6 py-4"><div className="h-4 bg-gray-200 rounded w-20"></div></TableCell>
+                                            <TableCell className="px-6 py-4"><div className="h-4 bg-gray-200 rounded w-24"></div></TableCell>
+                                            <TableCell className="px-6 py-4"><div className="h-4 bg-gray-200 rounded w-24"></div></TableCell>
+                                            <TableCell className="px-6 py-4"><div className="h-4 bg-gray-200 rounded w-16"></div></TableCell>
+                                            <TableCell className="px-6 py-4"><div className="h-5 bg-gray-200 rounded-full w-14"></div></TableCell>
+                                        </TableRow>
+                                    ))
+                                ) : transactionsList.length === 0 ? (
+                                    <TableRow>
+                                        <TableCell colSpan={5} className="px-6 py-8 text-center text-sm font-semibold text-gray-500">
+                                            No withdrawals found
                                         </TableCell>
                                     </TableRow>
-                                ))}
+                                ) : (
+                                    transactionsList.map((wdl: any) => {
+                                        const wdlId = wdl.trx_id || wdl._id;
+                                        const wdlDate = wdl.createdAt ? new Date(wdl.createdAt).toLocaleDateString() : "N/A";
+                                        const userName = wdl.owner?.name || "N/A";
+                                        const userInitials = userName.split(' ').map((n: string) => n[0]).join('');
+
+                                        return (
+                                            <TableRow key={wdl._id} className="hover:bg-gray-50/50 transition-colors border-b border-gray-50 group">
+                                                <TableCell className="px-6 py-4">
+                                                    <div className="space-y-0.5">
+                                                        <p className="text-sm font-bold text-gray-900">{wdlId}</p>
+                                                        <p className="text-[10px] font-bold text-gray-500 uppercase">{wdlDate}</p>
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell className="px-6 py-4">
+                                                    <div className="flex items-center gap-3">
+                                                        <Avatar className="h-8 w-8 rounded-lg border border-gray-100">
+                                                            <AvatarFallback className="bg-blue-50 text-blue-700 text-[10px] font-bold">
+                                                                {userInitials}
+                                                            </AvatarFallback>
+                                                        </Avatar>
+                                                        <span className="text-sm text-gray-900 font-bold">{userName}</span>
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell className="px-6 py-4">
+                                                    <span className="text-sm text-gray-900 font-bold">{wdl.payment_status || "Debit"}</span>
+                                                </TableCell>
+                                                <TableCell className="px-6 py-4">
+                                                    <span className="text-sm font-bold text-gray-900">${wdl.amount}</span>
+                                                </TableCell>
+                                                <TableCell className="px-6 py-4">
+                                                    <Badge className={getStatusBadgeClass(wdl.status || "Completed")}>
+                                                        {wdl.status || "Completed"}
+                                                    </Badge>
+                                                </TableCell>
+                                                {/* <TableCell className="px-6 py-4 text-right">
+                                                    ...
+                                                </TableCell> */}
+                                            </TableRow>
+                                        );
+                                    })
+                                )}
                             </TableBody>
                         </Table>
                     </div>
@@ -503,13 +474,13 @@ export default function PaymentWalletPage() {
                         <div className="space-y-4">
                             <div className="space-y-3">
                                 <Label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Target User / ID</Label>
-                                
+
                                 {selectedUserForAction ? (
                                     <div className="p-4 bg-blue-50/50 rounded-2xl border border-blue-100 flex items-center justify-between">
                                         <div className="flex items-center gap-3">
                                             <Avatar className="h-10 w-10 rounded-xl border-2 border-white shadow-sm">
                                                 <AvatarFallback className="bg-blue-600 text-white font-bold text-xs">
-                                                    {selectedUserForAction.avatar || selectedUserForAction.user?.split(' ').map((n:any) => n[0]).join('') || "U"}
+                                                    {selectedUserForAction.avatar || selectedUserForAction.user?.split(' ').map((n: any) => n[0]).join('') || "U"}
                                                 </AvatarFallback>
                                             </Avatar>
                                             <div>
@@ -517,9 +488,9 @@ export default function PaymentWalletPage() {
                                                 <p className="text-[10px] font-bold text-blue-600 uppercase tracking-tight">{selectedUserForAction.id || "External User"}</p>
                                             </div>
                                         </div>
-                                        <Button 
-                                            variant="ghost" 
-                                            size="sm" 
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
                                             onClick={() => setSelectedUserForAction(null)}
                                             className="h-8 w-8 p-0 rounded-full hover:bg-blue-100 text-blue-600"
                                         >
@@ -530,8 +501,8 @@ export default function PaymentWalletPage() {
                                     <div className="relative">
                                         <div className="relative">
                                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                                            <Input 
-                                                placeholder="Search user by name, email or ID..." 
+                                            <Input
+                                                placeholder="Search user by name, email or ID..."
                                                 className="pl-10 font-bold bg-gray-50/50 border-gray-100 rounded-2xl h-11 focus-visible:ring-blue-600"
                                                 value={userSearchTerm}
                                                 onChange={(e) => setUserSearchTerm(e.target.value)}
@@ -571,7 +542,7 @@ export default function PaymentWalletPage() {
                                     </div>
                                 )}
                             </div>
-                            
+
                             {manualActionType !== "Freeze Wallet" && (
                                 <div className="space-y-2">
                                     <Label className="text-xs font-bold text-gray-500 uppercase tracking-widest">Amount ($)</Label>
@@ -581,9 +552,9 @@ export default function PaymentWalletPage() {
 
                             <div className="space-y-2">
                                 <Label className="text-xs font-bold text-gray-500 uppercase tracking-widest">{manualActionType === "Freeze Wallet" ? "Reason for Freezing" : "Reason / Description"}</Label>
-                                <Textarea 
-                                    placeholder="Explain the reason for this action..." 
-                                    className="font-bold min-h-[100px] rounded-2xl border-gray-200 focus:ring-amber-500" 
+                                <Textarea
+                                    placeholder="Explain the reason for this action..."
+                                    className="font-bold min-h-[100px] rounded-2xl border-gray-200 focus:ring-amber-500"
                                 />
                             </div>
 
@@ -633,7 +604,7 @@ export default function PaymentWalletPage() {
                             </DialogDescription>
                         </div>
                     </div>
-                    
+
                     {selectedItem && (
                         <div className="p-8 space-y-8">
                             {/* Key Stats Grid */}
@@ -720,9 +691,9 @@ export default function PaymentWalletPage() {
 
                                     <div className="space-y-3 pt-4">
                                         <Label className="text-xs font-bold text-gray-500 uppercase tracking-widest">Admin Notes</Label>
-                                        <Textarea 
-                                            placeholder="Add internal notes..." 
-                                            className="font-bold min-h-[100px] bg-amber-50/30 border-amber-100 rounded-2xl text-sm" 
+                                        <Textarea
+                                            placeholder="Add internal notes..."
+                                            className="font-bold min-h-[100px] bg-amber-50/30 border-amber-100 rounded-2xl text-sm"
                                         />
                                     </div>
                                 </div>
@@ -756,7 +727,7 @@ export default function PaymentWalletPage() {
                             </SheetDescription>
                         </SheetHeader>
                     </div>
-                    
+
                     <div className="p-6 space-y-6">
                         {auditLogs.map((log) => (
                             <div key={log.id} className="p-5 rounded-3xl border border-gray-100 space-y-4 hover:shadow-md transition-all bg-white">
@@ -772,7 +743,7 @@ export default function PaymentWalletPage() {
                                     </div>
                                     <Badge className="bg-gray-100 text-gray-600 border-none font-bold text-[9px] uppercase">{log.id}</Badge>
                                 </div>
-                                
+
                                 <div className="space-y-3">
                                     <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-2xl">
                                         <div className="flex-1 space-y-1">

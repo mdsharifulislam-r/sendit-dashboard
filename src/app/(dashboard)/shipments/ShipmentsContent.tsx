@@ -7,66 +7,13 @@ import { Badge } from "@/components/ui/badge";
 import { Search } from "lucide-react";
 import Link from "next/link";
 
+import { useGetAlltripsQuery } from "@/redux/apiSlices/tripsSlice";
+
 export default function ShipmentsContent() {
     const [searchTerm, setSearchTerm] = useState("");
-
-    const shipments = [
-        {
-            id: "SHP2845",
-            sender: "Sarah Johnson",
-            traveler: "Michael Chen",
-            route: "NYC → London",
-            status: "Active",
-            date: "Apr 18, 2026",
-            riskFlag: "Normal"
-        },
-        {
-            id: "SHP2844",
-            sender: "Emma Williams",
-            traveler: "James Martinez",
-            route: "LA → Tokyo",
-            status: "Completed",
-            date: "Apr 17, 2026",
-            riskFlag: "Normal"
-        },
-        {
-            id: "SHP2843",
-            sender: "Olivia Brown",
-            traveler: "Michael Chen",
-            route: "Miami → Paris",
-            status: "Pending",
-            date: "Apr 16, 2026",
-            riskFlag: "Flagged"
-        },
-        {
-            id: "SHP2842",
-            sender: "Sarah Johnson",
-            traveler: "James Martinez",
-            route: "Boston → Berlin",
-            status: "Active",
-            date: "Apr 15, 2026",
-            riskFlag: "Normal"
-        },
-        {
-            id: "SHP2841",
-            sender: "Emma Williams",
-            traveler: "Michael Chen",
-            route: "Seattle → Sydney",
-            status: "Failed",
-            date: "Apr 14, 2026",
-            riskFlag: "Flagged"
-        }
-    ];
-
-    const getStatusBadgeClass = (status: string) => {
-        switch (status.toLowerCase()) {
-            case 'active': return 'bg-green-50 text-green-700 border-none px-4 py-1 rounded-full text-[10px] font-bold';
-            case 'completed': return 'bg-green-100 text-green-800 border-none px-4 py-1 rounded-full text-[10px] font-bold';
-            case 'pending': return 'bg-yellow-50 text-yellow-700 border-none px-4 py-1 rounded-full text-[10px] font-bold';
-            case 'failed': return 'bg-red-50 text-red-700 border-none px-4 py-1 rounded-full text-[10px] font-bold';
-            default: return 'bg-gray-50 text-gray-700 border-none px-4 py-1 rounded-full text-[10px] font-bold';
-        }
-    };
+    const { data: tripsResponse, isLoading } = useGetAlltripsQuery({ searchTerm });
+    const tripsList = tripsResponse?.data || [];
+;
 
     const getRiskBadgeClass = (risk: string) => {
         return risk.toLowerCase() === 'flagged' 
@@ -82,19 +29,16 @@ export default function ShipmentsContent() {
             </div>
 
             {/* Filters Row */}
-            <div className="grid grid-cols-4 gap-4 bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
-                <div className="relative">
+            <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex items-center gap-4">
+                <div className="relative flex-1">
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 w-4 h-4" />
                     <Input 
                         placeholder="Search shipments..." 
-                        className="pl-10 bg-transparent border border-gray-200 rounded-lg h-11 focus-visible:ring-blue-600 placeholder:text-gray-500" 
+                        className="pl-10 bg-transparent border border-gray-200 rounded-lg h-11 focus-visible:ring-blue-600 placeholder:text-gray-500 w-full" 
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                     />
                 </div>
-                <div className="bg-transparent border border-gray-200 rounded-lg h-11"></div>
-                <div className="bg-transparent border border-gray-200 rounded-lg h-11"></div>
-                <div className="bg-transparent border border-gray-200 rounded-lg h-11"></div>
             </div>
 
             {/* Table */}
@@ -102,54 +46,94 @@ export default function ShipmentsContent() {
                 <table className="w-full text-left">
                     <thead className="bg-gray-50/50 border-b border-gray-100">
                         <tr>
-                            <th className="px-6 py-4 text-[10px] font-bold text-gray-600 uppercase tracking-wider">SHIPMENT ID</th>
-                            <th className="px-6 py-4 text-[10px] font-bold text-gray-600 uppercase tracking-wider">SENDER</th>
+                            <th className="px-6 py-4 text-[10px] font-bold text-gray-600 uppercase tracking-wider">TRIP ID</th>
                             <th className="px-6 py-4 text-[10px] font-bold text-gray-600 uppercase tracking-wider">TRAVELER</th>
-                            <th className="px-6 py-4 text-[10px] font-bold text-gray-600 uppercase tracking-wider">ROUTE</th>
-                            <th className="px-6 py-4 text-[10px] font-bold text-gray-600 uppercase tracking-wider">STATUS</th>
+                            <th className="px-6 py-4 text-[10px] font-bold text-gray-600 uppercase tracking-wider">DEPARTURE ADDRESS</th>
+                            <th className="px-6 py-4 text-[10px] font-bold text-gray-600 uppercase tracking-wider">RETURN ADDRESS</th>
+                            <th className="px-6 py-4 text-[10px] font-bold text-gray-600 uppercase tracking-wider">CARRY TYPE</th>
+                            <th className="px-6 py-4 text-[10px] font-bold text-gray-600 uppercase tracking-wider">PRICING DETAILS</th>
                             <th className="px-6 py-4 text-[10px] font-bold text-gray-600 uppercase tracking-wider">DATE</th>
                             <th className="px-6 py-4 text-[10px] font-bold text-gray-600 uppercase tracking-wider">RISK FLAG</th>
                             <th className="px-6 py-4 text-[10px] font-bold text-gray-600 uppercase tracking-wider text-right">ACTIONS</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-50">
-                        {shipments.map((shipment) => (
-                            <tr key={shipment.id} className="hover:bg-gray-50/50 transition-colors">
-                                <td className="px-6 py-4">
-                                    <span className="text-sm font-bold text-gray-900">{shipment.id}</span>
-                                </td>
-                                <td className="px-6 py-4">
-                                    <span className="text-sm text-gray-700">{shipment.sender}</span>
-                                </td>
-                                <td className="px-6 py-4">
-                                    <span className="text-sm text-gray-700">{shipment.traveler}</span>
-                                </td>
-                                <td className="px-6 py-4">
-                                    <span className="text-sm text-gray-700">{shipment.route}</span>
-                                </td>
-                                <td className="px-6 py-4">
-                                    <span className={getStatusBadgeClass(shipment.status)}>
-                                        {shipment.status}
-                                    </span>
-                                </td>
-                                <td className="px-6 py-4">
-                                    <span className="text-sm text-gray-700">{shipment.date}</span>
-                                </td>
-                                <td className="px-6 py-4">
-                                    <span className={getRiskBadgeClass(shipment.riskFlag)}>
-                                        {shipment.riskFlag}
-                                    </span>
-                                </td>
-                                <td className="px-6 py-4 text-right">
-                                    <Link 
-                                        href={`/shipments/${shipment.id}`}
-                                        className="text-sm font-medium text-blue-600 hover:text-blue-800 transition-colors"
-                                    >
-                                        View
-                                    </Link>
+                        {isLoading ? (
+                            Array.from({ length: 5 }).map((_, i) => (
+                                <tr key={i} className="animate-pulse">
+                                    <td className="px-6 py-4"><div className="h-4 bg-gray-200 rounded w-16"></div></td>
+                                    <td className="px-6 py-4"><div className="h-4 bg-gray-200 rounded w-24"></div></td>
+                                    <td className="px-6 py-4"><div className="h-4 bg-gray-200 rounded w-24"></div></td>
+                                    <td className="px-6 py-4"><div className="h-4 bg-gray-200 rounded w-24"></div></td>
+                                    <td className="px-6 py-4"><div className="h-4 bg-gray-200 rounded w-20"></div></td>
+                                    <td className="px-6 py-4"><div className="h-4 bg-gray-200 rounded w-32"></div></td>
+                                    <td className="px-6 py-4"><div className="h-4 bg-gray-200 rounded w-20"></div></td>
+                                    <td className="px-6 py-4"><div className="h-5 bg-gray-200 rounded-full w-14"></div></td>
+                                    <td className="px-6 py-4 text-right"><div className="h-4 bg-gray-200 rounded w-10 ml-auto"></div></td>
+                                </tr>
+                            ))
+                        ) : tripsList.length === 0 ? (
+                            <tr>
+                                <td colSpan={9} className="px-6 py-8 text-center text-sm font-semibold text-gray-500">
+                                    No trips found
                                 </td>
                             </tr>
-                        ))}
+                        ) : (
+                            tripsList.map((trip: any) => {
+                                const tripDate = trip.departure_date ? new Date(trip.departure_date).toLocaleDateString() : "N/A";
+                                const travelerName = trip.user?.name || "N/A";
+                                const departureAddress = trip.departure_address || "N/A";
+                                const returnAddress = trip.return_address || "N/A";
+                                const carryType = trip.carry_type || "N/A";
+                                
+                                const currency = trip.pricing_details?.currency || "BDT";
+                                const priceKg = trip.pricing_details?.price_per_kg ?? "N/A";
+                                const priceDoc = trip.pricing_details?.price_per_document ?? "N/A";
+                                const pricingText = `${priceKg} ${currency}/kg, ${priceDoc} ${currency}/Doc`;
+                                const riskText = trip.status || "Normal";
+
+                                return (
+                                    <tr key={trip._id} className="hover:bg-gray-50/50 transition-colors">
+                                        <td className="px-6 py-4 font-mono font-bold text-xs text-gray-900">
+                                            {trip.id || trip._id}
+                                        </td>
+                                        <td className="px-6 py-4 text-sm font-bold text-gray-900">
+                                            {travelerName}
+                                        </td>
+                                        <td className="px-6 py-4 text-sm text-gray-700">
+                                            {departureAddress}
+                                        </td>
+                                        <td className="px-6 py-4 text-sm text-gray-700">
+                                            {returnAddress}
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <span className="text-sm font-bold text-gray-800 capitalize bg-gray-50 px-2.5 py-1 rounded-md border border-gray-100">
+                                                {carryType}
+                                            </span>
+                                        </td>
+                                        <td className="px-6 py-4 text-sm text-gray-700 font-mono">
+                                            {pricingText}
+                                        </td>
+                                        <td className="px-6 py-4 text-sm text-gray-700">
+                                            {tripDate}
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <span className={getRiskBadgeClass(riskText)}>
+                                                {riskText}
+                                            </span>
+                                        </td>
+                                        <td className="px-6 py-4 text-right">
+                                            <Link 
+                                                href={`/shipments/${trip._id}`}
+                                                className="text-sm font-bold text-blue-600 hover:text-blue-800 transition-colors"
+                                            >
+                                                View
+                                            </Link>
+                                        </td>
+                                    </tr>
+                                );
+                            })
+                        )}
                     </tbody>
                 </table>
             </div>
