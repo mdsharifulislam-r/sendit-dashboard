@@ -15,17 +15,63 @@ import {
   MessageSquare,
   AlertCircle
 } from 'lucide-react';
+import { useGetDashboardStatsQuery } from "@/redux/apiSlices/overviewSlice";
+import Link from "next/link";
 
 export default function DashboardContent() {
+  const { data: statsResponse, isLoading } = useGetDashboardStatsQuery(undefined);
+  const statsData = statsResponse?.data || {};
+
   const stats = [
-    { label: "Total Users", value: "12,847", icon: Users, color: "text-blue-700", bg: "bg-blue-50" },
-    { label: "Active Trips", value: "342", icon: Truck, color: "text-green-700", bg: "bg-green-50" },
-    { label: "Active Shipments", value: "1,284", icon: Package, color: "text-purple-700", bg: "bg-purple-50" },
-    { label: "Pending Verifications", value: "87", icon: CheckCircle2, color: "text-orange-700", bg: "bg-orange-50" },
-    { label: "Open Disputes", value: "23", icon: AlertTriangle, color: "text-orange-700", bg: "bg-orange-50" },
-    { label: "Pending Payouts", value: "$48,290", icon: DollarSign, color: "text-green-700", bg: "bg-green-50" },
-    { label: "Failed Payments", value: "12", icon: XCircle, color: "text-red-700", bg: "bg-red-50" },
-    { label: "System Alerts", value: "5", icon: Bell, color: "text-red-700", bg: "bg-red-50" },
+    { 
+      label: "Total Users", 
+      value: (statsData.total_users ?? 0).toLocaleString(), 
+      icon: Users, 
+      color: "text-blue-700", 
+      bg: "bg-blue-50" 
+    },
+    { 
+      label: "Total Trips", 
+      value: (statsData.total_trips ?? 0).toLocaleString(), 
+      icon: Truck, 
+      color: "text-green-700", 
+      bg: "bg-green-50" 
+    },
+    { 
+      label: "Total Bookings", 
+      value: (statsData.total_bookings ?? 0).toLocaleString(), 
+      icon: Package, 
+      color: "text-purple-700", 
+      bg: "bg-purple-50" 
+    },
+    { 
+      label: "Total Transactions", 
+      value: (statsData.total_transactions ?? 0).toLocaleString(), 
+      icon: DollarSign, 
+      color: "text-orange-700", 
+      bg: "bg-orange-50" 
+    },
+    { 
+      label: "Total Reports", 
+      value: (statsData.total_reports ?? 0).toLocaleString(), 
+      icon: AlertTriangle, 
+      color: "text-red-700", 
+      bg: "bg-red-50" 
+    },
+    { 
+      label: "Total Tickets", 
+      value: (statsData.total_tickets ?? 0).toLocaleString(), 
+      icon: MessageSquare, 
+      color: "text-blue-700", 
+      bg: "bg-blue-50" 
+    },
+    { 
+      label: "Total Risky Items", 
+      value: (statsData.total_risky_items ?? 0).toLocaleString(), 
+      icon: AlertCircle, 
+      color: "text-red-700", 
+      bg: "bg-red-50" 
+    },
   ];
 
   const healthMetrics = [
@@ -36,10 +82,10 @@ export default function DashboardContent() {
   ];
 
   const quickActions = [
-    { label: "Review KYC", icon: Users, color: "text-blue-700" },
-    { label: "Review Withdrawals", icon: Wallet, color: "text-blue-700" },
-    { label: "Open Support Tickets", icon: MessageSquare, color: "text-blue-700" },
-    { label: "Monitor Risk Alerts", icon: ShieldCheck, color: "text-blue-700" },
+    { label: "Review KYC", icon: Users, color: "text-blue-700", url: "/users-management" },
+    { label: "Review Withdrawals", icon: Wallet, color: "text-blue-700", url: "/payment-wallet" },
+    { label: "Open Support Tickets", icon: MessageSquare, color: "text-blue-700", url: "/support-disputes" },
+    { label: "Monitor Risk Alerts", icon: ShieldCheck, color: "text-blue-700", url: "/risk-policy" },
   ];
 
   return (
@@ -51,24 +97,37 @@ export default function DashboardContent() {
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {stats.map((stat, i) => (
-          <div key={i} className="bg-white p-5 rounded-xl border border-gray-100 shadow-sm space-y-4">
-            <div className={`w-10 h-10 ${stat.bg} rounded-lg flex items-center justify-center`}>
-              <stat.icon className={`w-5 h-5 ${stat.color}`} />
+        {isLoading ? (
+          Array.from({ length: 7 }).map((_, i) => (
+            <div key={i} className="bg-white p-5 rounded-xl border border-gray-100 shadow-sm space-y-4 animate-pulse">
+              <div className="w-10 h-10 bg-gray-100 rounded-lg"></div>
+              <div className="space-y-2">
+                <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+                <div className="h-8 bg-gray-200 rounded w-3/4"></div>
+              </div>
+              <div className="h-3 bg-gray-200 rounded w-1/3"></div>
             </div>
-            <div className="space-y-1">
-              <p className="text-gray-700 text-sm font-bold">{stat.label}</p>
-              <h2 className="text-2xl font-bold text-gray-900">{stat.value}</h2>
+          ))
+        ) : (
+          stats.map((stat, i) => (
+            <div key={i} className="bg-white p-5 rounded-xl border border-gray-100 shadow-sm space-y-4">
+              <div className={`w-10 h-10 ${stat.bg} rounded-lg flex items-center justify-center`}>
+                <stat.icon className={`w-5 h-5 ${stat.color}`} />
+              </div>
+              <div className="space-y-1">
+                <p className="text-gray-700 text-sm font-bold">{stat.label}</p>
+                <h2 className="text-2xl font-bold text-gray-900">{stat.value}</h2>
+              </div>
+              <button className="text-blue-700 text-xs font-bold flex items-center gap-1 hover:underline">
+                View Details <ArrowRight className="w-3 h-3" />
+              </button>
             </div>
-            <button className="text-blue-700 text-xs font-bold flex items-center gap-1 hover:underline">
-              View Details <ArrowRight className="w-3 h-3" />
-            </button>
-          </div>
-        ))}
+          ))
+        )}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Operation Health */}
+      <div className="grid grid-cols-1 gap-6">
+        {/* Operation Health 
         <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
           <h3 className="text-lg font-bold text-gray-900 mb-6">Operation Health</h3>
           <div className="divide-y divide-gray-50">
@@ -83,19 +142,20 @@ export default function DashboardContent() {
             ))}
           </div>
         </div>
+        */}
 
         {/* Quick Actions */}
         <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
           <h3 className="text-lg font-bold text-gray-900 mb-6">Quick Actions</h3>
           <div className="space-y-3">
             {quickActions.map((action, i) => (
-              <button key={i} className="w-full flex items-center justify-between p-4 rounded-xl border border-gray-100 hover:bg-gray-50 transition-colors group">
+              <Link key={i} href={action.url} className="w-full flex items-center justify-between p-4 rounded-xl border border-gray-100 hover:bg-gray-50 transition-colors group">
                 <div className="flex items-center gap-3">
                   <action.icon className={`w-5 h-5 ${action.color}`} />
                   <span className="text-gray-900 font-bold text-sm">{action.label}</span>
                 </div>
                 <ArrowRight className="w-4 h-4 text-gray-500 group-hover:text-blue-700 transition-colors" />
-              </button>
+              </Link>
             ))}
           </div>
         </div>

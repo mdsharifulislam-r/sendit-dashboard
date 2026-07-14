@@ -1,7 +1,5 @@
-import { getFromLocalStorage } from "../../utils/local-storage";
-import { api } from "../api/baseApi";
 
-const resetToken = typeof window !== "undefined" ? getFromLocalStorage("resetToken") : null;
+import { api } from "../api/baseApi";
 
 const authSlice = api.injectEndpoints({
     endpoints: (builder) => ({

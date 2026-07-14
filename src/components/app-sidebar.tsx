@@ -8,7 +8,6 @@ import { MENU_ITEMS } from "@/constants/navigation";
 import { api } from "@/redux/api/baseApi";
 import { Role } from "@/types";
 
-import { Search } from "lucide-react";
 import { useAppDispatch } from "@/redux/hooks";
 
 export function AppSidebar() {
@@ -48,18 +47,6 @@ export function AppSidebar() {
                         <Link href="/" className="block">
                             <h1 className="text-xl font-bold text-[#2563EB] tracking-tight">Sendit Admin</h1>
                         </Link>
-                    </div>
-
-                    {/* Search Bar */}
-                    <div className="px-6 mb-6">
-                        <div className="relative">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
-                            <input 
-                                type="text" 
-                                placeholder="Search users, shipments, tr" 
-                                className="w-full pl-9 pr-4 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 placeholder:text-gray-500"
-                            />
-                        </div>
                     </div>
 
                     <SidebarGroup className="px-3 flex-1 overflow-y-auto">
