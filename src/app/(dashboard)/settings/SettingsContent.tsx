@@ -1,12 +1,50 @@
 "use client";
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from "next/link";
 import { DollarSign, Shield, ChevronRight, Ticket, Users2, ChartNoAxesCombined } from 'lucide-react';
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
+import { useGetPricingRulesQuery, useCreatePricingRulesMutation } from "@/redux/apiSlices/pricingRulesSlice";
+import { toast } from "sonner";
 
 export default function SettingsPage() {
+  const [platformFee, setPlatformFee] = useState("");
+  const [taxAmount, setTaxAmount] = useState("");
+  const [withdrawFee, setWithdrawFee] = useState("");
+  const [minWithdrawAmount, setMinWithdrawAmount] = useState("");
+
+  const { data: pricingResponse, isLoading: isQueryLoading } = useGetPricingRulesQuery(undefined);
+  const [createPricingRules, { isLoading: isSaving }] = useCreatePricingRulesMutation();
+
+  useEffect(() => {
+    if (pricingResponse) {
+      const rules = pricingResponse.data || pricingResponse;
+      if (rules) {
+        setPlatformFee(rules.platform_fee !== undefined ? String(rules.platform_fee) : "");
+        setTaxAmount(rules.tax_amount !== undefined ? String(rules.tax_amount) : "");
+        setWithdrawFee(rules.withdraw_fee !== undefined ? String(rules.withdraw_fee) : "");
+        setMinWithdrawAmount(rules.min_withdraw_amount !== undefined ? String(rules.min_withdraw_amount) : "");
+      }
+    }
+  }, [pricingResponse]);
+
+  const handleSave = async () => {
+    try {
+      const body = {
+        platform_fee: Number(platformFee) || 0,
+        tax_amount: Number(taxAmount) || 0,
+        withdraw_fee: Number(withdrawFee) || 0,
+        min_withdraw_amount: Number(minWithdrawAmount) || 0,
+      };
+      await createPricingRules(body).unwrap();
+      toast.success("Financial configuration updated successfully!");
+    } catch (error) {
+      console.error("Failed to update pricing rules:", error);
+      toast.error("Failed to update financial configuration.");
+    }
+  };
+
   return (
     <div className="p-8 bg-[#F9F9F9] min-h-screen space-y-8">
       {/* Header */}
@@ -29,8 +67,10 @@ export default function SettingsPage() {
                 <label className="text-sm font-bold text-gray-700">Commission Percentage</label>
                 <div className="relative">
                   <Input 
-                    type="text" 
-                    defaultValue="15"
+                    type="number" 
+                    value={platformFee}
+                    onChange={(e) => setPlatformFee(e.target.value)}
+                    placeholder="15"
                     className="h-12 border-gray-200 focus-visible:ring-blue-600 rounded-lg pr-8 font-bold text-gray-900"
                   />
                   <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-600 font-bold">%</span>
@@ -39,12 +79,29 @@ export default function SettingsPage() {
               </div>
 
               <div className="space-y-2">
+                <label className="text-sm font-bold text-gray-700">Tax Amount</label>
+                <div className="relative">
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-600 font-bold">$</span>
+                  <Input 
+                    type="number" 
+                    value={taxAmount}
+                    onChange={(e) => setTaxAmount(e.target.value)}
+                    placeholder="9"
+                    className="h-12 border-gray-200 focus-visible:ring-blue-600 rounded-lg pl-8 font-bold text-gray-900"
+                  />
+                </div>
+                <p className="text-xs text-gray-600 font-bold">Standard tax amount configuration</p>
+              </div>
+
+              <div className="space-y-2">
                 <label className="text-sm font-bold text-gray-700">Withdrawal Fee</label>
                 <div className="relative">
                   <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-600 font-bold">$</span>
                   <Input 
-                    type="text" 
-                    defaultValue="2.50"
+                    type="number" 
+                    value={withdrawFee}
+                    onChange={(e) => setWithdrawFee(e.target.value)}
+                    placeholder="2.50"
                     className="h-12 border-gray-200 focus-visible:ring-blue-600 rounded-lg pl-8 font-bold text-gray-900"
                   />
                 </div>
@@ -56,8 +113,10 @@ export default function SettingsPage() {
                 <div className="relative">
                   <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-600 font-bold">$</span>
                   <Input 
-                    type="text" 
-                    defaultValue="50"
+                    type="number" 
+                    value={minWithdrawAmount}
+                    onChange={(e) => setMinWithdrawAmount(e.target.value)}
+                    placeholder="50"
                     className="h-12 border-gray-200 focus-visible:ring-blue-600 rounded-lg pl-8 font-bold text-gray-900"
                   />
                 </div>
@@ -67,7 +126,7 @@ export default function SettingsPage() {
           </div>
 
           {/* Security & Verification */}
-          <div className="bg-white p-8 rounded-xl border border-gray-100 shadow-sm space-y-8">
+          {/* <div className="bg-white p-8 rounded-xl border border-gray-100 shadow-sm space-y-8">
             <div className="flex items-center gap-3 text-green-700">
               <Shield className="w-5 h-5" />
               <h2 className="text-lg font-bold text-gray-900">Security & Verification</h2>
@@ -98,7 +157,7 @@ export default function SettingsPage() {
                 <Switch className="data-[state=checked]:bg-blue-600" />
               </div>
             </div>
-          </div>
+          </div> */}
         </div>
 
         {/* Right Column - Content Management & Save */}
@@ -140,8 +199,12 @@ export default function SettingsPage() {
               </p>
             </div>
             
-            <button className="w-full bg-blue-600 text-white py-3.5 rounded-xl font-bold text-sm hover:bg-blue-700 transition-all shadow-md flex items-center justify-center gap-2">
-              Save All Settings
+            <button 
+              onClick={handleSave}
+              disabled={isSaving}
+              className="w-full bg-blue-600 text-white py-3.5 rounded-xl font-bold text-sm hover:bg-blue-700 transition-all shadow-md flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isSaving ? "Saving..." : "Save All Settings"}
             </button>
           </div>
 

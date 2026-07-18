@@ -37,7 +37,7 @@ export default function DiscountReferralManagementPage() {
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+            {/* <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
                 {[
                     { label: "Active Discount Codes", value: "24", icon: Ticket },
                     { label: "Active Referral Programs", value: "6", icon: Users },
@@ -53,16 +53,16 @@ export default function DiscountReferralManagementPage() {
                         <p className="mt-1 text-[11px] font-semibold text-emerald-600">+ 12% vs last 30 days</p>
                     </div>
                 ))}
-            </div>
+            </div> */}
 
             <div className="grid grid-cols-1 gap-6 xl:grid-cols-12">
-                <div className="rounded-xl border border-gray-100 bg-white shadow-sm xl:col-span-9">
+                <div className="rounded-xl border border-gray-100 bg-white shadow-sm xl:col-span-12">
                     <div className="border-b border-gray-100 px-5 pt-4">
                         <div className="flex items-center gap-5 text-sm font-bold text-gray-500">
                             <Link href="/settings/discount-referral-management" className="border-b-2 border-blue-600 pb-3 text-blue-700">All Codes</Link>
                             <Link href="/settings/discount-codes" className="pb-3 hover:text-gray-800">Discount Codes</Link>
                             <Link href="/settings/referral-programs" className="pb-3 hover:text-gray-800">Referral Codes</Link>
-                            <button className="pb-3">Archived</button>
+                            {/* <button className="pb-3">Archived</button> */}
                         </div>
                     </div>
 
@@ -137,7 +137,7 @@ export default function DiscountReferralManagementPage() {
                     </div>
                 </div>
 
-                <div className="space-y-4 xl:col-span-3">
+                {/* <div className="space-y-4 xl:col-span-3">
                     <div className="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
                         <h3 className="text-lg font-bold text-gray-900">Insights</h3>
                         <div className="mt-4 space-y-4">
@@ -168,7 +168,7 @@ export default function DiscountReferralManagementPage() {
                             </div>
                         </div>
                     </div>
-                </div>
+                </div> */}
             </div>
         </div>
     );
