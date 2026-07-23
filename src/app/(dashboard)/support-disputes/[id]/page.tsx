@@ -1,5 +1,7 @@
 import TicketDetailsContent from "./TicketDetailsContent";
 
-export default function TicketDetailsPage({ params }: { params: { id: string } }) {
-    return <TicketDetailsContent id={params.id} />;
+export default async function TicketDetailsPage({ params }: { params: any }) {
+    const resolvedParams = params && typeof params.then === "function" ? await params : params;
+    const id = resolvedParams?.id;
+    return <TicketDetailsContent id={id} />;
 }

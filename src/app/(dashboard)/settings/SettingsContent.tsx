@@ -167,26 +167,26 @@ export default function SettingsPage() {
             <h2 className="text-lg font-bold text-gray-900">Content Management</h2>
             
             <div className="space-y-4">
-              <button className="w-full flex flex-col items-start p-4 rounded-xl border border-gray-100 hover:bg-gray-50 transition-all text-left group">
+              <Link href="/settings/disclaimer?type=faq" className="w-full flex flex-col items-start p-4 rounded-xl border border-gray-100 hover:bg-gray-50 transition-all text-left group">
                 <div className="flex items-center gap-3 mb-1">
                   <span className="text-sm font-bold text-gray-900">Edit FAQ</span>
                 </div>
-                <p className="text-xs text-gray-600 font-bold">Manage help articles</p>
-              </button>
+                <p className="text-xs text-gray-600 font-bold">Manage help articles & FAQs</p>
+              </Link>
 
-              <button className="w-full flex flex-col items-start p-4 rounded-xl border border-gray-100 hover:bg-gray-50 transition-all text-left group">
+              <Link href="/settings/disclaimer?type=terms" className="w-full flex flex-col items-start p-4 rounded-xl border border-gray-100 hover:bg-gray-50 transition-all text-left group">
                 <div className="flex items-center gap-3 mb-1">
                   <span className="text-sm font-bold text-gray-900">Edit Policies</span>
                 </div>
-                <p className="text-xs text-gray-600 font-bold">Terms & conditions</p>
-              </button>
+                <p className="text-xs text-gray-600 font-bold">Terms, privacy & legal policies</p>
+              </Link>
 
-              <button className="w-full flex flex-col items-start p-4 rounded-xl border border-gray-100 hover:bg-gray-50 transition-all text-left group">
+              <Link href="/settings/disclaimer?type=transport" className="w-full flex flex-col items-start p-4 rounded-xl border border-gray-100 hover:bg-gray-50 transition-all text-left group">
                 <div className="flex items-center gap-3 mb-1">
-                  <span className="text-sm font-bold text-gray-900">Edit Help Content</span>
+                  <span className="text-sm font-bold text-gray-900">Edit Transport Disclaimer</span>
                 </div>
-                <p className="text-xs text-gray-600 font-bold">Support documentation</p>
-              </button>
+                <p className="text-xs text-gray-600 font-bold">Transport rules & disclaimer</p>
+              </Link>
             </div>
           </div>
 
@@ -207,67 +207,71 @@ export default function SettingsPage() {
               {isSaving ? "Saving..." : "Save All Settings"}
             </button>
           </div>
+        </div>
 
-          {/* Discount & Referral Management */}
-          <div className="bg-white p-8 rounded-xl border border-gray-100 shadow-sm space-y-6">
-            <h2 className="text-lg font-bold text-gray-900">Discount & Referral Management</h2>
-
-            <div className="space-y-3">
-              <Link
-                href="/settings/discount-referral-management"
-                className="w-full flex items-center justify-between p-4 rounded-xl border border-gray-100 hover:bg-gray-50 transition-all text-left"
-              >
-                <div className="flex items-center gap-3">
-                  <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-purple-100 text-purple-600">
-                    <Ticket className="w-4 h-4" />
-                  </span>
-                  <div>
-                    <p className="text-sm font-bold text-gray-900">Manage Discount Codes</p>
-                    <p className="text-xs text-gray-600 font-bold">Create and manage promo campaigns</p>
-                  </div>
-                </div>
-                <ChevronRight className="w-4 h-4 text-gray-400" />
-              </Link>
-
-              <Link
-                href="/settings/discount-referral-management"
-                className="w-full flex items-center justify-between p-4 rounded-xl border border-gray-100 hover:bg-gray-50 transition-all text-left"
-              >
-                <div className="flex items-center gap-3">
-                  <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-green-100 text-green-600">
-                    <Users2 className="w-4 h-4" />
-                  </span>
-                  <div>
-                    <p className="text-sm font-bold text-gray-900">Manage Referral Programs</p>
-                    <p className="text-xs text-gray-600 font-bold">Set invites and incentive rewards</p>
-                  </div>
-                </div>
-                <ChevronRight className="w-4 h-4 text-gray-400" />
-              </Link>
-
-              <Link
-                href="/settings/code-usage"
-                className="w-full flex items-center justify-between p-4 rounded-xl border border-gray-100 hover:bg-gray-50 transition-all text-left"
-              >
-                <div className="flex items-center gap-3">
-                  <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-100 text-indigo-600">
-                    <ChartNoAxesCombined className="w-4 h-4" />
-                  </span>
-                  <div>
-                    <p className="text-sm font-bold text-gray-900">Track Code Usage</p>
-                    <p className="text-xs text-gray-600 font-bold">Monitor redemptions and performance</p>
-                  </div>
-                </div>
-                <ChevronRight className="w-4 h-4 text-gray-400" />
-              </Link>
+        {/* Discount & Referral Management - Full Column */}
+        <div className="lg:col-span-3 bg-white p-8 rounded-xl border border-gray-100 shadow-sm space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h2 className="text-lg font-bold text-gray-900">Discount & Referral Management</h2>
+              <p className="text-xs text-gray-600 font-bold mt-0.5">Manage promotional codes, referral programs, and track redemption performance.</p>
             </div>
-
             <Link
               href="/settings/discount-referral-management"
-              className="block w-full border border-blue-200 text-blue-700 py-3.5 rounded-xl font-bold text-sm hover:bg-blue-50 transition-all text-center"
+              className="inline-flex items-center justify-center border border-blue-200 text-blue-700 px-6 py-2.5 rounded-xl font-bold text-sm hover:bg-blue-50 transition-all text-center shrink-0"
             >
               Open Management
             </Link>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Link
+              href="/settings/discount-referral-management"
+              className="flex items-center justify-between p-4 rounded-xl border border-gray-100 hover:bg-gray-50 transition-all text-left group"
+            >
+              <div className="flex items-center gap-3">
+                <span className="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-purple-100 text-purple-600 shrink-0">
+                  <Ticket className="w-5 h-5" />
+                </span>
+                <div>
+                  <p className="text-sm font-bold text-gray-900">Manage Discount Codes</p>
+                  <p className="text-xs text-gray-600 font-bold">Create and manage promo campaigns</p>
+                </div>
+              </div>
+              <ChevronRight className="w-4 h-4 text-gray-400 group-hover:translate-x-0.5 transition-transform" />
+            </Link>
+
+            <Link
+              href="/settings/discount-referral-management"
+              className="flex items-center justify-between p-4 rounded-xl border border-gray-100 hover:bg-gray-50 transition-all text-left group"
+            >
+              <div className="flex items-center gap-3">
+                <span className="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-green-100 text-green-600 shrink-0">
+                  <Users2 className="w-5 h-5" />
+                </span>
+                <div>
+                  <p className="text-sm font-bold text-gray-900">Manage Referral Programs</p>
+                  <p className="text-xs text-gray-600 font-bold">Set invites and incentive rewards</p>
+                </div>
+              </div>
+              <ChevronRight className="w-4 h-4 text-gray-400 group-hover:translate-x-0.5 transition-transform" />
+            </Link>
+
+            {/* <Link
+              href="/settings/code-usage"
+              className="flex items-center justify-between p-4 rounded-xl border border-gray-100 hover:bg-gray-50 transition-all text-left group"
+            >
+              <div className="flex items-center gap-3">
+                <span className="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-100 text-indigo-600 shrink-0">
+                  <ChartNoAxesCombined className="w-5 h-5" />
+                </span>
+                <div>
+                  <p className="text-sm font-bold text-gray-900">Track Code Usage</p>
+                  <p className="text-xs text-gray-600 font-bold">Monitor redemptions and performance</p>
+                </div>
+              </div>
+              <ChevronRight className="w-4 h-4 text-gray-400 group-hover:translate-x-0.5 transition-transform" />
+            </Link> */}
           </div>
         </div>
       </div>
