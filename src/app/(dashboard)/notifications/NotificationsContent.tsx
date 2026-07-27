@@ -24,7 +24,8 @@ import {
     DollarSign,
     Eye,
     Filter,
-    Clock
+    Clock,
+    Inbox
 } from "lucide-react";
 import {
     useGetNotificationsQuery,
@@ -215,16 +216,14 @@ export default function NotificationsContent() {
             render: (isRead: boolean) => (
                 <div className="flex items-center gap-2">
                     <span
-                        className={`inline-block w-2.5 h-2.5 rounded-full ${
-                            !isRead ? "bg-blue-600 ring-4 ring-blue-100 animate-pulse" : "bg-gray-300"
-                        }`}
+                        className={`inline-block w-2.5 h-2.5 rounded-full ${!isRead ? "bg-blue-600 ring-4 ring-blue-100 animate-pulse" : "bg-gray-300"
+                            }`}
                     />
                     <Badge
-                        className={`${
-                            !isRead
+                        className={`${!isRead
                                 ? "bg-blue-100 text-blue-800 border-blue-200"
                                 : "bg-gray-100 text-gray-600 border-gray-200"
-                        } text-[10px] font-bold px-2 py-0.5 rounded-md border`}
+                            } text-[10px] font-bold px-2 py-0.5 rounded-md border`}
                     >
                         {!isRead ? "UNREAD" : "READ"}
                     </Badge>
@@ -378,11 +377,10 @@ export default function NotificationsContent() {
                                 <button
                                     key={status}
                                     onClick={() => setStatusFilter(status)}
-                                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                                        statusFilter === status
+                                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${statusFilter === status
                                             ? "bg-white text-blue-600 shadow-sm"
                                             : "text-gray-600 hover:text-gray-900"
-                                    }`}
+                                        }`}
                                 >
                                     {status === "ALL" ? "All" : status === "UNREAD" ? `Unread (${unreadCount})` : "Read"}
                                 </button>
@@ -476,11 +474,10 @@ export default function NotificationsContent() {
                         <div className="flex items-center justify-between pr-4">
                             {getCategoryBadge(selectedNotif?.filePath)}
                             <Badge
-                                className={`${
-                                    selectedNotif?.isRead
+                                className={`${selectedNotif?.isRead
                                         ? "bg-gray-100 text-gray-600"
                                         : "bg-blue-100 text-blue-800"
-                                } text-xs px-2.5 py-0.5 rounded-full font-semibold border-none`}
+                                    } text-xs px-2.5 py-0.5 rounded-full font-semibold border-none`}
                             >
                                 {selectedNotif?.isRead ? "Read" : "Unread"}
                             </Badge>
@@ -492,9 +489,9 @@ export default function NotificationsContent() {
                             <Clock className="w-3.5 h-3.5 text-gray-400" />
                             {selectedNotif?.createdAt
                                 ? new Date(selectedNotif.createdAt).toLocaleString("en-US", {
-                                      dateStyle: "full",
-                                      timeStyle: "short",
-                                  })
+                                    dateStyle: "full",
+                                    timeStyle: "short",
+                                })
                                 : ""}
                         </DialogDescription>
                     </DialogHeader>

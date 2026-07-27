@@ -78,6 +78,35 @@ export interface GetMessagesResponse {
     data: MessageItem[];
 }
 
+export interface TicketBooking {
+    _id: string;
+    id: string;
+    pickup_address?: string;
+    dropoff_address?: string;
+    status?: string;
+}
+
+export interface TicketItem {
+    _id: string;
+    ticket_id: string;
+    title: string;
+    description: string;
+    booking: TicketBooking | string;
+    report: string;
+    status: string;
+    priority: string;
+    createdAt: string;
+    updatedAt: string;
+}
+
+export interface CreateTicketPayload {
+    title: string;
+    description: string;
+    booking: string;
+    report: string;
+    priority: string;
+}
+
 export const supportSlice = api.injectEndpoints({
     overrideExisting: true,
     endpoints: (builder) => ({
@@ -142,6 +171,23 @@ export const supportSlice = api.injectEndpoints({
                 return [{ type: "Support", id: `chat-${chatId}` }];
             },
         }),
+
+        getTicketsByReport: builder.query<{ success: boolean; data: TicketItem[] }, string>({
+            query: (reportId) => ({
+                url: `/ticket`,
+                params: { report: reportId },
+            }),
+            providesTags: (_result, _error, arg) => [{ type: "Support", id: `tickets-${arg}` }],
+        }),
+
+        createTicket: builder.mutation<{ success: boolean; message: string; data: TicketItem }, CreateTicketPayload>({
+            query: (payload) => ({
+                url: "/ticket/create",
+                method: "POST",
+                body: payload,
+            }),
+            invalidatesTags: (_result, _error, arg) => [{ type: "Support", id: `tickets-${arg.report}` }],
+        }),
     }),
 });
 
@@ -152,4 +198,6 @@ export const {
     useDeleteReportMutation,
     useGetMessagesQuery,
     useSendMessageMutation,
+    useGetTicketsByReportQuery,
+    useCreateTicketMutation,
 } = supportSlice;
