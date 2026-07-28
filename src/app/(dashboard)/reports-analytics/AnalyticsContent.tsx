@@ -4,38 +4,99 @@ import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
-import { TrendingUp, DollarSign, BarChart3 } from "lucide-react";
+import { TrendingUp, DollarSign, BarChart3, Loader2 } from "lucide-react";
+import { useGetAnalyticsQuery } from "@/redux/apiSlices/analyticsSlice";
 
 export default function AnalyticsContent() {
+    const { data: analyticsData, isLoading, error } = useGetAnalyticsQuery({});
+
+    if (isLoading) {
+        return (
+            <div className="flex justify-center items-center h-screen bg-[#F9F9F9]">
+                <Loader2 className="w-8 h-8 animate-spin text-gray-500" />
+            </div>
+        );
+    }
+
+    if (error || !analyticsData?.data) {
+        return (
+            <div className="flex justify-center items-center h-screen bg-[#F9F9F9]">
+                <p className="text-red-500 font-medium">Failed to load analytics data.</p>
+            </div>
+        );
+    }
+
+    const { kpis, top_routes_by_demand, support_performance, dispute_trends, financial_overview } = analyticsData.data;
+
     const stats = [
-        { label: "Conversion Rate", value: "68.5%", trend: "+5.2%", trendType: "up" },
-        { label: "Booking Rate", value: "42.8%", trend: "+3.1%", trendType: "up" },
-        { label: "Dispute Rate", value: "2.4%", trend: "-0.8%", trendType: "down" },
-        { label: "KYC Approval Rate", value: "89.2%", trend: "+2.5%", trendType: "up" },
-        { label: "Avg Payout Time", value: "1.8 days", trend: "-0.3 days", trendType: "down" },
-        { label: "Customer Satisfaction", value: "4.6/5", trend: "+0.2", trendType: "up" },
+        { 
+            label: "Conversion Rate", 
+            value: `${kpis.conversion_rate.value}${kpis.conversion_rate.unit}`, 
+            trend: `${kpis.conversion_rate.change > 0 ? '+' : ''}${kpis.conversion_rate.change}%`, 
+            trendType: kpis.conversion_rate.change >= 0 ? "up" : "down" 
+        },
+        { 
+            label: "Booking Rate", 
+            value: `${kpis.booking_rate.value}${kpis.booking_rate.unit}`, 
+            trend: `${kpis.booking_rate.change > 0 ? '+' : ''}${kpis.booking_rate.change}%`, 
+            trendType: kpis.booking_rate.change >= 0 ? "up" : "down" 
+        },
+        { 
+            label: "Dispute Rate", 
+            value: `${kpis.dispute_rate.value}${kpis.dispute_rate.unit}`, 
+            trend: `${kpis.dispute_rate.change > 0 ? '+' : ''}${kpis.dispute_rate.change}%`, 
+            trendType: kpis.dispute_rate.change >= 0 ? "up" : "down" 
+        },
+        { 
+            label: "KYC Approval Rate", 
+            value: `${kpis.kyc_approval_rate.value}${kpis.kyc_approval_rate.unit}`, 
+            trend: `${kpis.kyc_approval_rate.change > 0 ? '+' : ''}${kpis.kyc_approval_rate.change}%`, 
+            trendType: kpis.kyc_approval_rate.change >= 0 ? "up" : "down" 
+        },
+        { 
+            label: "Avg Payout Time", 
+            value: `${kpis.avg_payout_time.value} ${kpis.avg_payout_time.unit}`, 
+            trend: `${kpis.avg_payout_time.change > 0 ? '+' : ''}${kpis.avg_payout_time.change} days`, 
+            trendType: kpis.avg_payout_time.change >= 0 ? "up" : "down" 
+        },
+        { 
+            label: "Customer Satisfaction", 
+            value: `${kpis.customer_satisfaction.value}/${kpis.customer_satisfaction.max}`, 
+            trend: `${kpis.customer_satisfaction.change > 0 ? '+' : ''}${kpis.customer_satisfaction.change}`, 
+            trendType: kpis.customer_satisfaction.change >= 0 ? "up" : "down" 
+        },
     ];
 
-    const routes = [
-        { route: "NYC → London", bookings: 342, revenue: "$45,890", progress: 85 },
-        { route: "LA → Tokyo", bookings: 289, revenue: "$38,720", progress: 70 },
-        { route: "Miami → Paris", bookings: 234, revenue: "$31,560", progress: 60 },
-        { route: "Boston → Berlin", bookings: 198, revenue: "$26,730", progress: 50 },
-        { route: "Seattle → Sydney", bookings: 167, revenue: "$22,495", progress: 40 },
-    ];
+    const maxBookings = Math.max(...(top_routes_by_demand?.map((r: any) => r.bookings) || [1]));
 
     const supportPerformance = [
-        { label: "Average Response Time", value: "2.5 hrs", progress: 40, color: "bg-[#22C55E]" },
-        { label: "First Contact Resolution", value: "78%", progress: 78, color: "bg-[#2563EB]" },
-        { label: "Tickets Resolved", value: "1,245 / 1,342", progress: 92, color: "bg-[#9333EA]" },
+        { 
+            label: "Average Response Time", 
+            value: `${support_performance.avg_response_time.value} ${support_performance.avg_response_time.unit}`, 
+            progress: 100, // could calculate a real percentage based on a max goal if provided
+            color: "bg-[#22C55E]" 
+        },
+        { 
+            label: "First Contact Resolution", 
+            value: `${support_performance.first_contact_resolution.value}${support_performance.first_contact_resolution.unit}`, 
+            progress: support_performance.first_contact_resolution.value, 
+            color: "bg-[#2563EB]" 
+        },
+        { 
+            label: "Tickets Resolved", 
+            value: `${support_performance.tickets_resolved.resolved} / ${support_performance.tickets_resolved.total}`, 
+            progress: support_performance.tickets_resolved.total > 0 ? (support_performance.tickets_resolved.resolved / support_performance.tickets_resolved.total) * 100 : 0, 
+            color: "bg-[#9333EA]" 
+        },
     ];
 
-    const disputeTrends = [
-        { label: "Damaged Item", cases: 12, progress: 70, color: "bg-[#EA580C]" },
-        { label: "Non-Delivery", cases: 8, progress: 45, color: "bg-[#EA580C]" },
-        { label: "Wrong Weight", cases: 6, progress: 35, color: "bg-[#EA580C]" },
-        { label: "Payment Issue", cases: 4, progress: 20, color: "bg-[#EA580C]" },
-    ];
+    const totalDisputes = dispute_trends.reduce((acc: number, item: any) => acc + item.count, 0) || 1;
+    const mappedDisputeTrends = dispute_trends.map((item: any) => ({
+        label: item.reason,
+        cases: item.count,
+        progress: (item.count / totalDisputes) * 100,
+        color: "bg-[#EA580C]"
+    }));
 
     return (
         <div className="p-8 space-y-8 bg-[#F9F9F9] min-h-screen">
@@ -71,16 +132,19 @@ export default function AnalyticsContent() {
                     <CardContent className="p-6 space-y-6">
                         <h2 className="text-lg font-bold text-gray-900">Top Routes by Demand</h2>
                         <div className="space-y-6">
-                            {routes.map((item, i) => (
+                            {top_routes_by_demand?.map((item: any, i: number) => (
                                 <div key={i} className="space-y-2">
                                     <div className="flex justify-between items-center text-sm">
-                                        <span className="font-bold text-gray-900">{item.route}</span>
-                                        <span className="text-gray-700 font-bold">{item.bookings} bookings</span>
+                                        <span className="font-bold text-gray-900 truncate max-w-[70%] mr-2" title={item.route}>{item.route}</span>
+                                        <span className="text-gray-700 font-bold whitespace-nowrap">{item.bookings} bookings</span>
                                     </div>
-                                    <Progress value={item.progress} className="h-2 bg-gray-100" indicatorClassName="bg-blue-700" />
-                                    <p className="text-xs text-gray-700 font-bold">Revenue: {item.revenue}</p>
+                                    <Progress value={(item.bookings / maxBookings) * 100} className="h-2 bg-gray-100" indicatorClassName="bg-blue-700" />
+                                    <p className="text-xs text-gray-700 font-bold">Revenue: ${item.revenue.toLocaleString()}</p>
                                 </div>
                             ))}
+                            {(!top_routes_by_demand || top_routes_by_demand.length === 0) && (
+                                <p className="text-sm text-gray-500">No route data available.</p>
+                            )}
                         </div>
                     </CardContent>
                 </Card>
@@ -108,7 +172,7 @@ export default function AnalyticsContent() {
                     <CardContent className="p-6 space-y-6">
                         <h2 className="text-lg font-bold text-gray-900">Dispute Trends</h2>
                         <div className="space-y-6">
-                            {disputeTrends.map((item, i) => (
+                            {mappedDisputeTrends.map((item: any, i: number) => (
                                 <div key={i} className="space-y-2">
                                     <div className="flex justify-between items-center text-sm">
                                         <span className="font-bold text-gray-900">{item.label}</span>
@@ -117,6 +181,9 @@ export default function AnalyticsContent() {
                                     <Progress value={item.progress} className="h-1.5 bg-gray-100" indicatorClassName={item.color} />
                                 </div>
                             ))}
+                            {mappedDisputeTrends.length === 0 && (
+                                <p className="text-sm text-gray-500">No dispute data available.</p>
+                            )}
                         </div>
                     </CardContent>
                 </Card>
@@ -129,7 +196,7 @@ export default function AnalyticsContent() {
                             <div className="flex justify-between items-center">
                                 <div className="space-y-1">
                                     <p className="text-sm text-gray-700 font-bold">Total Revenue</p>
-                                    <p className="text-2xl font-bold text-gray-900">$248,560</p>
+                                    <p className="text-2xl font-bold text-gray-900">${financial_overview.total_revenue.toLocaleString()}</p>
                                 </div>
                                 <div className="p-2 rounded-lg">
                                     <TrendingUp className="w-6 h-6 text-green-700" />
@@ -138,7 +205,7 @@ export default function AnalyticsContent() {
                             <div className="flex justify-between items-center">
                                 <div className="space-y-1">
                                     <p className="text-sm text-gray-700 font-bold">Commission Earned</p>
-                                    <p className="text-2xl font-bold text-gray-900">$37,284</p>
+                                    <p className="text-2xl font-bold text-gray-900">${financial_overview.commission_earned.toLocaleString()}</p>
                                 </div>
                                 <div className="p-2 rounded-lg">
                                     <DollarSign className="w-6 h-6 text-blue-700" />
@@ -147,7 +214,7 @@ export default function AnalyticsContent() {
                             <div className="flex justify-between items-center">
                                 <div className="space-y-1">
                                     <p className="text-sm text-gray-700 font-bold">Total Payouts</p>
-                                    <p className="text-2xl font-bold text-gray-900">$211,276</p>
+                                    <p className="text-2xl font-bold text-gray-900">${financial_overview.total_payouts.toLocaleString()}</p>
                                 </div>
                                 <div className="p-2 rounded-lg">
                                     <BarChart3 className="w-6 h-6 text-purple-700" />
@@ -158,7 +225,7 @@ export default function AnalyticsContent() {
                 </Card>
             </div>
 
-            {/* Export Reports */}
+            {/* Export Reports
             <div className="space-y-4">
                 <h2 className="text-lg font-bold text-gray-900">Export Reports</h2>
                 <div className="flex flex-wrap gap-4">
@@ -167,6 +234,7 @@ export default function AnalyticsContent() {
                     <Button variant="outline" className="border-gray-200 text-gray-700 px-6 font-bold">Schedule Report</Button>
                 </div>
             </div>
+            */}
         </div>
     );
 }
