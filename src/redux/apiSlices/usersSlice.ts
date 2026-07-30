@@ -3,9 +3,12 @@ import { api } from "../api/baseApi";
 const usersSlice = api.injectEndpoints({
     endpoints: (builder) => ({
         getAllUsers: builder.query({
-            query: () => {
+            query: (params) => {
+                const query = new URLSearchParams();
+                if (params?.page) query.append("page", params.page.toString());
+                if (params?.limit) query.append("limit", params.limit.toString());
                 return {
-                    url: "/admin/users",
+                    url: `/admin/users?${query.toString()}`,
                 }
             },
             providesTags: ["Users"]
@@ -40,6 +43,17 @@ const usersSlice = api.injectEndpoints({
             invalidatesTags: ["Users"]
         }),   
 
+        createUser: builder.mutation({
+            query: (data) => {
+                return {
+                    url: `/admin/users/add-user`,
+                    method: "POST",
+                    body: data,
+                }
+            },
+            invalidatesTags: ["Users"]
+        }),
+
     }) 
 }) 
-export const {useGetAllUsersQuery, useGetUserByIdQuery, useUpdateApproveByIdMutation, useUpdateSuspendByIdMutation} = usersSlice
+export const {useGetAllUsersQuery, useGetUserByIdQuery, useUpdateApproveByIdMutation, useUpdateSuspendByIdMutation, useCreateUserMutation} = usersSlice

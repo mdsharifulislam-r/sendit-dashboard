@@ -2,15 +2,48 @@
 
 import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
-import { Search, Filter } from "lucide-react";
+import { Search, Filter, Plus, RefreshCw, ChevronLeft, ChevronRight } from "lucide-react";
 import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { toast } from "sonner";
+import { useErrorToast } from "@/hooks/useErrorToast";
 
-import { useGetAllUsersQuery } from "@/redux/apiSlices/usersSlice";
+import { useGetAllUsersQuery, useCreateUserMutation } from "@/redux/apiSlices/usersSlice";
 
 export default function UserManagement() {
     const [searchTerm, setSearchTerm] = useState("");
-    const { data: usersResponse, isLoading } = useGetAllUsersQuery(undefined);
+    const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+    
+    // Add user form state
+    const [name, setName] = useState("");
+    const [email, setEmail] = useState("");
+    const [contact, setContact] = useState("");
+    const [password, setPassword] = useState("");
+
+    const [page, setPage] = useState(1);
+
+    const { data: usersResponse, isLoading, isFetching } = useGetAllUsersQuery({ page, limit: 10 });
+    const [createUser, { isLoading: isCreating }] = useCreateUserMutation();
     const usersList = usersResponse?.data || [];
+    const totalPages = usersResponse?.pagination?.totalPage || 1;
+    const showError = useErrorToast();
+
+    const handleCreateUser = async (e: React.FormEvent) => {
+        e.preventDefault();
+        try {
+            const res = await createUser({ name, email, contact, password }).unwrap();
+            toast.success(res?.message || "User created successfully!");
+            setIsAddModalOpen(false);
+            setName("");
+            setEmail("");
+            setContact("");
+            setPassword("");
+        } catch (error: any) {
+            showError(error, "Failed to create user");
+        }
+    };
 
     const filteredUsers = usersList.filter((user: any) => {
         const term = searchTerm.toLowerCase();
@@ -44,8 +77,76 @@ export default function UserManagement() {
                     <button className="p-2 border border-gray-200 rounded-lg text-gray-500 hover:bg-gray-50">
                         <Filter className="w-5 h-5" />
                     </button>
+                    <Button 
+                        onClick={() => setIsAddModalOpen(true)}
+                        className="bg-blue-600 hover:bg-blue-700 text-white font-bold h-10 px-4"
+                    >
+                        <Plus className="w-4 h-4 mr-2" />
+                        Add User
+                    </Button>
                 </div>
             </div>
+
+            {/* Add User Modal */}
+            <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
+                <DialogContent className="sm:max-w-[425px]">
+                    <DialogHeader>
+                        <DialogTitle>Add New User</DialogTitle>
+                        <DialogDescription>
+                            Create a new user account by filling out the details below.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <form onSubmit={handleCreateUser} className="space-y-4 mt-4">
+                        <div className="space-y-2">
+                            <label className="text-sm font-bold text-gray-700">Name</label>
+                            <Input 
+                                value={name} 
+                                onChange={(e) => setName(e.target.value)} 
+                                placeholder="e.g. John Doe" 
+                                required 
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <label className="text-sm font-bold text-gray-700">Email</label>
+                            <Input 
+                                type="email"
+                                value={email} 
+                                onChange={(e) => setEmail(e.target.value)} 
+                                placeholder="e.g. john@example.com" 
+                                required 
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <label className="text-sm font-bold text-gray-700">Contact</label>
+                            <Input 
+                                value={contact} 
+                                onChange={(e) => setContact(e.target.value)} 
+                                placeholder="e.g. +1234567890" 
+                                required 
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <label className="text-sm font-bold text-gray-700">Password</label>
+                            <Input 
+                                type="password"
+                                value={password} 
+                                onChange={(e) => setPassword(e.target.value)} 
+                                placeholder="Enter secure password" 
+                                required 
+                            />
+                        </div>
+                        <DialogFooter className="mt-6">
+                            <Button type="button" variant="outline" onClick={() => setIsAddModalOpen(false)}>
+                                Cancel
+                            </Button>
+                            <Button type="submit" disabled={isCreating} className="bg-blue-600 hover:bg-blue-700 text-white">
+                                {isCreating ? <RefreshCw className="w-4 h-4 mr-2 animate-spin" /> : null}
+                                Create User
+                            </Button>
+                        </DialogFooter>
+                    </form>
+                </DialogContent>
+            </Dialog>
 
             {/* Table */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
@@ -62,7 +163,7 @@ export default function UserManagement() {
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-50">
-                        {isLoading ? (
+                        {isLoading || isFetching ? (
                             Array.from({ length: 5 }).map((_, i) => (
                                 <tr key={i} className="animate-pulse">
                                     <td className="px-6 py-4">
@@ -147,6 +248,38 @@ export default function UserManagement() {
                     </tbody>
                 </table>
             </div>
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+                <div className="flex items-center justify-between bg-white px-4 py-3 border-t border-gray-100 sm:px-6 rounded-b-xl">
+                    <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+                        <div>
+                            <p className="text-sm text-gray-700 font-bold">
+                                Showing page <span className="font-bold">{page}</span> of <span className="font-bold">{totalPages}</span>
+                            </p>
+                        </div>
+                        <div>
+                            <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+                                <button
+                                    onClick={() => setPage((p) => Math.max(1, p - 1))}
+                                    disabled={page === 1 || isFetching}
+                                    className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-bold text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    <span className="sr-only">Previous</span>
+                                    <ChevronLeft className="h-5 w-5" aria-hidden="true" />
+                                </button>
+                                <button
+                                    onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                                    disabled={page === totalPages || isFetching}
+                                    className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-bold text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    <span className="sr-only">Next</span>
+                                    <ChevronRight className="h-5 w-5" aria-hidden="true" />
+                                </button>
+                            </nav>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

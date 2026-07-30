@@ -152,10 +152,10 @@ export const supportSlice = api.injectEndpoints({
             invalidatesTags: ["Support"],
         }),
 
-        getMessages: builder.query<GetMessagesResponse, { chatId: string; reportId: string }>({
-            query: ({ chatId, reportId }) => ({
+        getMessages: builder.query<GetMessagesResponse, { chatId: string; reportId: string; page?: number; limit?: number }>({
+            query: ({ chatId, reportId, page = 1, limit = 10 }) => ({
                 url: `/message/${chatId}`,
-                params: { report: reportId },
+                params: { report: reportId, page, limit },
             }),
             providesTags: (_result, _error, arg) => [{ type: "Support", id: `chat-${arg.chatId}` }],
         }),

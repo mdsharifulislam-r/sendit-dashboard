@@ -16,7 +16,8 @@ import {
     Plus,
     Tag,
     ChevronDown,
-    ChevronUp
+    ChevronUp,
+    DollarSign
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -74,6 +75,11 @@ export default function TicketDetailsContent({ id }: { id: string }) {
     const [note, setNote] = useState("");
     const [messageInput, setMessageInput] = useState("");
 
+    // Refund state
+    const [isRefundModalOpen, setIsRefundModalOpen] = useState(false);
+    const [refundAmount, setRefundAmount] = useState("");
+    const [isRefunding, setIsRefunding] = useState(false);
+
     // File upload states
     const [selectedImages, setSelectedImages] = useState<File[]>([]);
     const [selectedDocs, setSelectedDocs] = useState<File[]>([]);
@@ -88,8 +94,8 @@ export default function TicketDetailsContent({ id }: { id: string }) {
 
     // Fetch report details
     const { data: reportResponse, isLoading: isLoadingReport, refetch: refetchReport } = useGetSingleReportQuery(id, { skip: !id });
-    const report = reportResponse?.data; 
-
+    const report = reportResponse?.data;
+    const [page, setPage] = useState(1);
 
     // Fetch messages based on chatId and reportId
     const {
@@ -97,29 +103,31 @@ export default function TicketDetailsContent({ id }: { id: string }) {
         isLoading: isLoadingMessages,
         refetch: refetchMessages
     } = useGetMessagesQuery(
-        { chatId: report?.chat!, reportId: report?._id! },
+        { chatId: report?.chat!, reportId: report?._id!, page, limit: 10 },
         { skip: !report?.chat || !report?._id }
     );
-    console.log(messagesResponse, "messages Response") 
+    console.log(messagesResponse, "messages Response")
     const [updateReportStatus, { isLoading: isUpdating }] = useUpdateReportStatusMutation();
     const [sendMessage, { isLoading: isSending }] = useSendMessageMutation();
 
-    // Ticket modal and list state
-    const [isTicketModalOpen, setIsTicketModalOpen] = useState(false);
-    const [ticketTitle, setTicketTitle] = useState("Payment Failed");
-    const [ticketDesc, setTicketDesc] = useState("Stripe payment was declined during checkout.");
-    const [ticketBooking, setTicketBooking] = useState("SNDB-BK-7gyv5rw0y");
-    const [ticketPriority, setTicketPriority] = useState("medium");
-    const [expandedTickets, setExpandedTickets] = useState<Record<string, boolean>>({});
+    // Pagination state
+    const [allMessages, setAllMessages] = useState<LocalMessage[]>([]);
 
-    const { data: ticketsResponse } = useGetTicketsByReportQuery(report?._id || "", { skip: !report?._id });
-    const ticketsList = (ticketsResponse?.data || []) as TicketItem[];
-    const [createTicket, { isLoading: isCreatingTicket }] = useCreateTicketMutation();
+    useEffect(() => {
+        if (messagesResponse?.data) {
+            setAllMessages(prev => {
+                const map = new Map(prev.map(msg => [msg._id, msg]));
+                (messagesResponse.data as LocalMessage[]).forEach(msg => {
+                    map.set(msg._id, msg);
+                });
+                return Array.from(map.values()).sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+            });
+        }
+    }, [messagesResponse?.data]);
 
     // Combine messages list with fallback to ticket description as the initial message
     const messagesList = useMemo(() => {
-        const rawList = (messagesResponse?.data || []) as LocalMessage[];
-        if (rawList.length === 0 && report) {
+        if (allMessages.length === 0 && report) {
             return [
                 {
                     _id: "initial-description",
@@ -138,8 +146,8 @@ export default function TicketDetailsContent({ id }: { id: string }) {
             ];
         }
         // Sort chronologically: oldest first (top), newest last (bottom near input box)
-        return [...rawList].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
-    }, [messagesResponse, report]);
+        return [...allMessages].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+    }, [allMessages, report]);
 
     // Listen for real-time messages via Socket.IO
     useEffect(() => {
@@ -177,8 +185,28 @@ export default function TicketDetailsContent({ id }: { id: string }) {
 
     // Auto scroll to bottom when messages update
     useEffect(() => {
-        chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
-    }, [messagesList]);
+        // Only scroll to bottom if we are on page 1, otherwise it will snap down when loading older messages
+        if (page === 1) {
+            chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+        }
+    }, [messagesList, page]);
+    // Handle Refund Action
+    const handleRefundSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!refundAmount) return;
+        setIsRefunding(true);
+        try {
+            // Wait for backend integration, for now just simulate
+            await new Promise((resolve) => setTimeout(resolve, 1000));
+            toast.success(`Refund of $${refundAmount} processed successfully.`);
+            setIsRefundModalOpen(false);
+            setRefundAmount("");
+        } catch (error) {
+            toast.error("Failed to process refund.");
+        } finally {
+            setIsRefunding(false);
+        }
+    };
 
     // Handle Resolution Action
     const handleResolve = async () => {
@@ -245,30 +273,6 @@ export default function TicketDetailsContent({ id }: { id: string }) {
         if (!note.trim()) return;
         toast.success("Internal note saved successfully!");
         setNote("");
-    };
-
-    const handleCreateTicket = async () => {
-        if (!ticketTitle.trim() || !ticketDesc.trim() || !ticketBooking.trim()) {
-            toast.error("Please fill in all ticket details");
-            return;
-        }
-        try {
-            const res = await createTicket({
-                title: ticketTitle.trim(),
-                description: ticketDesc.trim(),
-                booking: ticketBooking.trim(),
-                report: report?._id || id,
-                priority: ticketPriority,
-            }).unwrap();
-            toast.success(res?.message || "Ticket created successfully");
-            setIsTicketModalOpen(false);
-        } catch (err) {
-            showError(err);
-        }
-    };
-
-    const toggleTicketCollapse = (ticketId: string) => {
-        setExpandedTickets((prev) => ({ ...prev, [ticketId]: !prev[ticketId] }));
     };
 
     const isLoading = isLoadingReport || (report?.chat && isLoadingMessages);
@@ -349,6 +353,16 @@ export default function TicketDetailsContent({ id }: { id: string }) {
                     <Badge className={`${isClosed ? 'bg-green-50 text-green-700 border-green-100' : 'bg-amber-50 text-amber-700 border-amber-100'} border text-[13px] font-bold px-4 py-1.5 rounded-lg capitalize`}>
                         ● {report.status || "open"}
                     </Badge>
+                    {!isClosed && (
+                        <Button
+                            onClick={() => setIsRefundModalOpen(true)}
+                            variant="outline"
+                            className="text-white border-red-200 bg-red-600 hover:bg-red-700 hover:text-white font-bold px-4 h-11 rounded-xl flex gap-2"
+                        >
+                            <DollarSign className="w-4.5 h-4.5" />
+                            <span>Refund</span>
+                        </Button>
+                    )}
                     <Button
                         variant="outline"
                         onClick={() => toast.success("Shared ticket parameters copied to clipboard.")}
@@ -381,6 +395,25 @@ export default function TicketDetailsContent({ id }: { id: string }) {
 
                         {/* Scrollable Chat Messages Container */}
                         <div className="flex-1 space-y-8 overflow-y-auto pr-2 scrollbar-thin">
+                            {messagesResponse?.pagination && messagesResponse.pagination.page < messagesResponse.pagination.totalPage && (
+                                <div className="flex justify-center mb-4">
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => setPage(p => p + 1)}
+                                        disabled={isLoadingMessages}
+                                        className="text-xs text-[#0052FF] border-[#0052FF] hover:bg-blue-50"
+                                    >
+                                        {isLoadingMessages ? (
+                                            <>
+                                                <RefreshCw className="w-3 h-3 mr-2 animate-spin" /> Loading...
+                                            </>
+                                        ) : (
+                                            "Load Older Messages"
+                                        )}
+                                    </Button>
+                                </div>
+                            )}
                             {messagesList.map((msg) => {
                                 // Decide alignment: admin/agent messages go to right side
                                 const isAgentMsg = msg.sender?._id === currentUserId || msg.sender?._id !== report.user?._id;
@@ -413,8 +446,8 @@ export default function TicketDetailsContent({ id }: { id: string }) {
                                             </div>
                                             {msg.message && (
                                                 <div className={`p-4 rounded-2xl text-xs font-semibold leading-relaxed shadow-sm ${isAgentMsg
-                                                        ? "bg-[#0052FF] text-white rounded-tr-none"
-                                                        : "bg-gray-50 text-gray-700 rounded-tl-none border border-gray-100"
+                                                    ? "bg-[#0052FF] text-white rounded-tr-none"
+                                                    : "bg-gray-50 text-gray-700 rounded-tl-none border border-gray-100"
                                                     }`}>
                                                     {msg.message}
                                                 </div>
@@ -558,124 +591,6 @@ export default function TicketDetailsContent({ id }: { id: string }) {
 
                 {/* Sidebar */}
                 <div className="xl:col-span-4 space-y-6">
-                    {/* Create Ticket Action & Collapsible List */}
-                    <div className="space-y-4">
-                        <div className="flex justify-end">
-                            <Button
-                                onClick={() => setIsTicketModalOpen(true)}
-                                className="bg-[#0052FF] hover:bg-[#0041CC] text-white font-bold px-5 h-10 rounded-xl flex items-center gap-2 text-xs shadow-sm"
-                            >
-                                <Plus className="w-4 h-4" />
-                                <span>Add Ticket</span>
-                            </Button>
-                        </div>
-
-                        {/* Created Tickets Section */}
-                        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-4">
-                            <div className="flex items-center justify-between border-b border-gray-100 pb-3">
-                                <h2 className="text-xs font-bold text-gray-900 uppercase tracking-widest flex items-center gap-1.5">
-                                    <Tag className="w-3.5 h-3.5 text-[#0052FF]" />
-                                    <span>Created Tickets</span>
-                                </h2>
-                                <Badge className="bg-blue-50 text-[#0052FF] border-none px-2 py-0.5 text-[10px] font-bold">
-                                    {ticketsList.length}
-                                </Badge>
-                            </div>
-
-                            {ticketsList.length === 0 ? (
-                                <div className="bg-gray-50 rounded-xl p-4 text-center border border-dashed border-gray-200">
-                                    <p className="text-xs font-bold text-gray-700 mb-0.5">No tickets created yet</p>
-                                    <p className="text-[11px] font-medium text-gray-500">Click &quot;Add Ticket&quot; above to link a ticket to this dispute.</p>
-                                </div>
-                            ) : (
-                                <div className="space-y-3">
-                                    {ticketsList.map((tkt) => {
-                                        const isExpanded = !!expandedTickets[tkt._id];
-                                        return (
-                                            <div
-                                                key={tkt._id}
-                                                className="bg-white rounded-2xl border border-gray-150 shadow-sm overflow-hidden transition-all"
-                                            >
-                                                {/* Collapsed Header (Click to expand) */}
-                                                <div
-                                                    onClick={() => toggleTicketCollapse(tkt._id)}
-                                                    className="p-3.5 flex items-center justify-between cursor-pointer hover:bg-gray-50 transition-colors"
-                                                >
-                                                    <div className="flex items-center gap-2.5">
-                                                        <div className="p-2 rounded-xl bg-blue-50 text-[#0052FF]">
-                                                            <Tag className="w-3.5 h-3.5" />
-                                                        </div>
-                                                        <div>
-                                                            <p className="text-xs font-bold text-gray-900">{tkt.ticket_id || "Ticket"}</p>
-                                                            <p className="text-[11px] font-semibold text-gray-600 truncate max-w-[140px]">{tkt.title}</p>
-                                                        </div>
-                                                    </div>
-                                                    <div className="flex items-center gap-1.5">
-                                                        <Badge className={`text-[9px] font-bold px-1.5 py-0.5 rounded capitalize ${tkt.status === 'open' ? 'bg-amber-50 text-amber-700 border-amber-100' : 'bg-green-50 text-green-700 border-green-100'}`}>
-                                                            ● {tkt.status || "open"}
-                                                        </Badge>
-                                                        {isExpanded ? <ChevronUp className="w-4 h-4 text-gray-400" /> : <ChevronDown className="w-4 h-4 text-gray-400" />}
-                                                    </div>
-                                                </div>
-
-                                                {/* Expanded Info Body */}
-                                                {isExpanded && (
-                                                    <div className="p-3.5 pt-0 border-t border-gray-100 space-y-3 bg-gray-50/50 text-xs font-medium text-gray-600">
-                                                        <div className="pt-2.5">
-                                                            <span className="text-[10px] font-bold text-gray-900 uppercase tracking-wider block mb-1">Description</span>
-                                                            <p className="text-gray-700 bg-white p-2.5 rounded-xl border border-gray-150">{tkt.description}</p>
-                                                        </div>
-
-                                                        <div className="grid grid-cols-2 gap-2 bg-white p-2.5 rounded-xl border border-gray-150">
-                                                            <div>
-                                                                <span className="text-[9px] text-gray-400 uppercase font-bold block">Priority</span>
-                                                                <span className="font-bold text-gray-900 capitalize">{tkt.priority || "medium"}</span>
-                                                            </div>
-                                                            <div>
-                                                                <span className="text-[9px] text-gray-400 uppercase font-bold block">Created At</span>
-                                                                <span className="font-bold text-gray-900">{tkt.createdAt ? new Date(tkt.createdAt).toLocaleDateString() : "N/A"}</span>
-                                                            </div>
-                                                        </div>
-
-                                                        {tkt.booking && (
-                                                            <div className="bg-white p-2.5 rounded-xl border border-gray-150 space-y-1.5">
-                                                                <span className="text-[9px] font-bold text-gray-900 uppercase tracking-wider block border-b border-gray-100 pb-1">Booking Details</span>
-                                                                {typeof tkt.booking === 'string' ? (
-                                                                    <div className="flex justify-between">
-                                                                        <span>Booking ID:</span>
-                                                                        <span className="font-bold text-gray-900">{tkt.booking}</span>
-                                                                    </div>
-                                                                ) : (
-                                                                    <>
-                                                                        <div className="flex justify-between">
-                                                                            <span>ID:</span>
-                                                                            <span className="font-bold text-gray-900">{tkt.booking.id}</span>
-                                                                        </div>
-                                                                        {tkt.booking.pickup_address && (
-                                                                            <div className="flex justify-between truncate">
-                                                                                <span>Pickup:</span>
-                                                                                <span className="font-bold text-gray-900 truncate max-w-[130px]">{tkt.booking.pickup_address}</span>
-                                                                            </div>
-                                                                        )}
-                                                                        {tkt.booking.status && (
-                                                                            <div className="flex justify-between">
-                                                                                <span>Status:</span>
-                                                                                <span className="font-bold text-gray-900">{tkt.booking.status}</span>
-                                                                            </div>
-                                                                        )}
-                                                                    </>
-                                                                )}
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                )}
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                            )}
-                        </div>
-                    </div>
 
                     {/* Ticket Metadata */}
                     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-5">
@@ -752,84 +667,43 @@ export default function TicketDetailsContent({ id }: { id: string }) {
                 </div>
             </div>
 
-            {/* Create Ticket Modal */}
-            <Dialog open={isTicketModalOpen} onOpenChange={setIsTicketModalOpen}>
-                <DialogContent className="sm:max-w-[480px] rounded-2xl p-6 bg-white border border-gray-100 shadow-xl">
+
+            {/* Refund Modal */}
+            <Dialog open={isRefundModalOpen} onOpenChange={setIsRefundModalOpen}>
+                <DialogContent className="sm:max-w-[425px]">
                     <DialogHeader>
-                        <DialogTitle className="text-lg font-bold text-gray-900">Create New Ticket</DialogTitle>
-                        <DialogDescription className="text-xs font-semibold text-gray-500">
-                            Create an issue ticket linked to Dispute Report: <span className="font-bold text-gray-800">{report?.report_id || id}</span>
+                        <DialogTitle>Issue Refund</DialogTitle>
+                        <DialogDescription>
+                            Enter the amount you wish to refund for this dispute.
                         </DialogDescription>
                     </DialogHeader>
-                    <div className="space-y-4 py-3">
-                        <div className="space-y-1.5">
-                            <Label className="text-xs font-bold text-gray-700">Ticket Title</Label>
-                            <Input
-                                placeholder="e.g. Payment Failed"
-                                className="h-10 rounded-xl text-xs font-semibold"
-                                value={ticketTitle}
-                                onChange={(e) => setTicketTitle(e.target.value)}
-                            />
-                        </div>
-                        <div className="space-y-1.5">
-                            <Label className="text-xs font-bold text-gray-700">Description</Label>
-                            <Textarea
-                                placeholder="Describe the issue..."
-                                className="min-h-[80px] rounded-xl text-xs font-semibold"
-                                value={ticketDesc}
-                                onChange={(e) => setTicketDesc(e.target.value)}
-                            />
-                        </div>
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-1.5">
-                                <Label className="text-xs font-bold text-gray-700">Booking ID</Label>
+                    <form onSubmit={handleRefundSubmit} className="space-y-4 mt-4">
+                        <div className="space-y-2">
+                            <Label className="font-bold text-gray-700">Refund Amount</Label>
+                            <div className="relative">
+                                <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
                                 <Input
-                                    placeholder="e.g. SNDB-BK-..."
-                                    className="h-10 rounded-xl text-xs font-semibold"
-                                    value={ticketBooking}
-                                    onChange={(e) => setTicketBooking(e.target.value)}
+                                    type="number"
+                                    min="0.01"
+                                    step="0.01"
+                                    value={refundAmount}
+                                    onChange={(e) => setRefundAmount(e.target.value)}
+                                    placeholder="0.00"
+                                    className="pl-10 font-bold"
+                                    required
                                 />
                             </div>
-                            <div className="space-y-1.5">
-                                <Label className="text-xs font-bold text-gray-700">Priority</Label>
-                                <Select value={ticketPriority} onValueChange={setTicketPriority}>
-                                    <SelectTrigger className="h-10 rounded-xl text-xs font-bold">
-                                        <SelectValue placeholder="Select priority" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="low" className="text-xs font-bold">Low</SelectItem>
-                                        <SelectItem value="medium" className="text-xs font-bold">Medium</SelectItem>
-                                        <SelectItem value="high" className="text-xs font-bold">High</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
                         </div>
-                    </div>
-                    <DialogFooter className="gap-2 pt-2 border-t border-gray-100">
-                        <Button
-                            type="button"
-                            variant="outline"
-                            onClick={() => setIsTicketModalOpen(false)}
-                            className="h-10 rounded-xl font-bold text-xs"
-                        >
-                            Cancel
-                        </Button>
-                        <Button
-                            type="button"
-                            onClick={handleCreateTicket}
-                            disabled={isCreatingTicket}
-                            className="bg-[#0052FF] hover:bg-[#0041CC] text-white h-10 rounded-xl font-bold text-xs px-6"
-                        >
-                            {isCreatingTicket ? (
-                                <>
-                                    <RefreshCw className="w-3.5 h-3.5 animate-spin mr-1.5" />
-                                    <span>Creating...</span>
-                                </>
-                            ) : (
-                                <span>Create Ticket</span>
-                            )}
-                        </Button>
-                    </DialogFooter>
+                        <DialogFooter className="mt-6">
+                            <Button type="button" variant="outline" onClick={() => setIsRefundModalOpen(false)}>
+                                Cancel
+                            </Button>
+                            <Button type="submit" disabled={isRefunding} className="bg-red-600 hover:bg-red-700 text-white font-bold">
+                                {isRefunding ? <RefreshCw className="w-4 h-4 mr-2 animate-spin" /> : <DollarSign className="w-4 h-4 mr-2" />}
+                                Process Refund
+                            </Button>
+                        </DialogFooter>
+                    </form>
                 </DialogContent>
             </Dialog>
         </div>

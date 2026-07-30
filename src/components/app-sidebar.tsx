@@ -9,11 +9,11 @@ import { api } from "@/redux/api/baseApi";
 import { Role } from "@/types";
 
 import { useAppDispatch } from "@/redux/hooks";
-
 export function AppSidebar() {
+
     const pathname = usePathname();
     const [role, setRole] = useState<Role>("admin");
-    
+
     useEffect(() => {
         if (typeof window !== "undefined") {
             const localRole = localStorage.getItem("role") as Role;
@@ -24,7 +24,7 @@ export function AppSidebar() {
     }, []);
 
     // Use role-based menu items
-    const items = MENU_ITEMS[role] || MENU_ITEMS["admin"]; 
+    const items = MENU_ITEMS[role] || MENU_ITEMS["admin"];
     const router = useRouter();
     const dispatch = useAppDispatch();
 
@@ -56,13 +56,13 @@ export function AppSidebar() {
                                     const isActive = pathname === item.url || (item.url !== "/" && pathname.startsWith(item.url));
                                     return (
                                         <SidebarMenuItem key={item.title}>
-                                            <SidebarMenuButton 
-                                                asChild 
-                                                isActive={isActive} 
+                                            <SidebarMenuButton
+                                                asChild
+                                                isActive={isActive}
                                                 className={`h-11 rounded-lg ${isActive ? "bg-blue-50 text-[#2563EB] hover:bg-blue-50 hover:text-[#2563EB]" : "text-gray-700 hover:bg-gray-50 hover:text-gray-900"}`}
                                             >
-                                                <Link 
-                                                    href={item.url} 
+                                                <Link
+                                                    href={item.url}
                                                     className="flex items-center gap-3 px-3 w-full"
                                                 >
                                                     <item.icon className={`w-5 h-5 ${isActive ? "text-[#2563EB]" : "text-gray-600"}`} />
@@ -76,8 +76,9 @@ export function AppSidebar() {
                         </SidebarGroupContent>
                     </SidebarGroup>
 
-                    {/* Logout Button */}
-                    <div className="p-4 mt-auto">
+                    {/* Profile & Logout Buttons */}
+                    <div className="p-4 mt-auto space-y-2 border-t border-gray-100">
+
                         <button
                             onClick={handleLogout}
                             className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-gray-50 hover:text-gray-900 w-full transition-colors duration-200"

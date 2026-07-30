@@ -1,14 +1,24 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { Search, Filter, RefreshCw, Eye, AlertTriangle, ShieldCheck, Ticket, User, HelpCircle, XCircle, Trash2 } from "lucide-react";
+import { Search, Filter, RefreshCw, Eye, AlertTriangle, ShieldCheck, Ticket, User, HelpCircle, XCircle, Trash2, Plus } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
-import { useGetReportsQuery, useUpdateReportStatusMutation, useDeleteReportMutation, ReportItem } from "@/redux/apiSlices/supportSlice";
+import { useGetReportsQuery, useUpdateReportStatusMutation, useDeleteReportMutation, useCreateTicketMutation, ReportItem } from "@/redux/apiSlices/supportSlice";
 import { toast } from "sonner";
 import { useErrorToast } from "@/hooks/useErrorToast";
 import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+    Select as UISelect,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
+import { useGetAlltripsQuery } from "@/redux/apiSlices/tripsSlice";
 import { Table, ConfigProvider } from "antd";
 import type { TableProps } from "antd";
 import {
@@ -28,6 +38,20 @@ export default function SupportDisputesContent() {
     const [statusFilter, setStatusFilter] = useState<string>("ALL");
     const [selectedTicket, setSelectedTicket] = useState<ReportItem | null>(null);
     const [deletingTicket, setDeletingTicket] = useState<ReportItem | null>(null);
+
+    // Ticket Modal State
+    const [isTicketModalOpen, setIsTicketModalOpen] = useState(false);
+    const [ticketTitle, setTicketTitle] = useState("");
+    const [ticketDesc, setTicketDesc] = useState("");
+    const [selectedBookingId, setSelectedBookingId] = useState("");
+    const [ticketPriority, setTicketPriority] = useState("medium");
+
+    // Fetch Trips/Bookings for Dropdown
+    const { data: tripsResponse, isLoading: isLoadingTrips } = useGetAlltripsQuery({ limit: 100 });
+    const trips = tripsResponse?.data || [];
+    const selectedTrip = useMemo(() => trips.find((t: any) => t.id === selectedBookingId || t._id === selectedBookingId), [trips, selectedBookingId]);
+
+    const [createTicket, { isLoading: isCreatingTicket }] = useCreateTicketMutation();
 
     // Fetch reports from API using RTK query pagination
     const { data: reportsResponse, isLoading, isFetching, refetch } = useGetReportsQuery({
@@ -64,6 +88,35 @@ export default function SupportDisputesContent() {
             refetch();
         } catch (err) {
             showError(err);
+        }
+    };
+
+    const handleCreateTicket = async () => {
+        try {
+            if (!ticketTitle.trim()) {
+                toast.error("Ticket title is required");
+                return;
+            }
+            if (!selectedBookingId) {
+                toast.error("Please select a Booking ID");
+                return;
+            }
+            const res = await createTicket({
+                title: ticketTitle,
+                description: ticketDesc,
+                booking: selectedBookingId,
+                report: "", // Root ticket
+                priority: ticketPriority,
+            }).unwrap();
+            toast.success(res?.message || "Ticket created successfully!");
+            setIsTicketModalOpen(false);
+            setTicketTitle("");
+            setTicketDesc("");
+            setSelectedBookingId("");
+            setTicketPriority("medium");
+            refetch();
+        } catch (error: any) {
+            showError(error);
         }
     };
 
@@ -278,6 +331,13 @@ export default function SupportDisputesContent() {
                     />
                 </div>
                 <div className="flex items-center gap-3">
+                    <Button
+                        onClick={() => setIsTicketModalOpen(true)}
+                        className="bg-[#0052FF] hover:bg-[#0041CC] text-white font-bold h-11 px-4 rounded-xl flex items-center gap-2 shadow-sm whitespace-nowrap"
+                    >
+                        <Plus className="w-4 h-4" />
+                        <span>Add Ticket</span>
+                    </Button>
                     <select
                         value={statusFilter}
                         onChange={(e) => {
@@ -358,46 +418,6 @@ export default function SupportDisputesContent() {
                 </div>
             </ConfigProvider>
 
-            {/* Bottom Actions - Active when a ticket is selected */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-4">
-                <button
-                    disabled={!selectedTicket || selectedTicket.status === "closed"}
-                    onClick={() => selectedTicket && handleStatusUpdate(selectedTicket._id, "closed")}
-                    className="h-14 bg-[#00B67A] text-white rounded-xl font-bold hover:bg-[#00A36D] transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                >
-                    <ShieldCheck className="w-5 h-5" />
-                    <span>Approve Claim</span>
-                </button>
-                <button
-                    disabled={!selectedTicket || selectedTicket.status === "closed"}
-                    onClick={() => selectedTicket && handleStatusUpdate(selectedTicket._id, "closed")}
-                    className="h-14 bg-[#0052FF] text-white rounded-xl font-bold hover:bg-[#0041CC] transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                >
-                    <Ticket className="w-5 h-5" />
-                    <span>Partial Refund</span>
-                </button>
-                <button
-                    disabled={!selectedTicket}
-                    onClick={() => selectedTicket && toast.info(`Evidence requested for ticket ${selectedTicket.report_id}`)}
-                    className="h-14 bg-[#CC8400] text-white rounded-xl font-bold hover:bg-[#B37400] transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                >
-                    <AlertTriangle className="w-5 h-5" />
-                    <span>Request Evidence</span>
-                </button>
-                <button
-                    disabled={!selectedTicket || selectedTicket.status === "closed"}
-                    onClick={() => selectedTicket && handleStatusUpdate(selectedTicket._id, "closed")}
-                    className="h-14 bg-[#FF0000] text-white rounded-xl font-bold hover:bg-[#E60000] transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                >
-                    <XCircle className="w-5 h-5" />
-                    <span>Reject Claim</span>
-                </button>
-            </div>
-            {!selectedTicket && (
-                <p className="text-center text-xs text-gray-500 font-semibold mt-2">
-                    💡 Select any ticket in the table to activate the bottom action buttons.
-                </p>
-            )}
 
             {/* Delete Confirmation Modal */}
             <Dialog open={Boolean(deletingTicket)} onOpenChange={(open) => !open && setDeletingTicket(null)}>
@@ -439,6 +459,115 @@ export default function SupportDisputesContent() {
                                     <Trash2 className="w-4 h-4" />
                                     <span>Delete Ticket</span>
                                 </>
+                            )}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Create Ticket Modal */}
+            <Dialog open={isTicketModalOpen} onOpenChange={setIsTicketModalOpen}>
+                <DialogContent className="sm:max-w-[550px] rounded-2xl p-6 bg-white border border-gray-100 shadow-xl max-h-[90vh] overflow-y-auto">
+                    <DialogHeader>
+                        <DialogTitle className="text-lg font-bold text-gray-900">Create New Ticket</DialogTitle>
+                        <DialogDescription className="text-xs font-semibold text-gray-500">
+                            Create a new support ticket by selecting a Booking ID.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 py-3">
+                        <div className="space-y-1.5">
+                            <Label className="text-xs font-bold text-gray-700">Ticket Title</Label>
+                            <Input
+                                placeholder="e.g. Payment Failed"
+                                className="h-10 rounded-xl text-xs font-semibold"
+                                value={ticketTitle}
+                                onChange={(e) => setTicketTitle(e.target.value)}
+                            />
+                        </div>
+                        <div className="space-y-1.5">
+                            <Label className="text-xs font-bold text-gray-700">Description</Label>
+                            <Textarea
+                                placeholder="Describe the issue..."
+                                className="min-h-[80px] rounded-xl text-xs font-semibold"
+                                value={ticketDesc}
+                                onChange={(e) => setTicketDesc(e.target.value)}
+                            />
+                        </div>
+                        
+                        <div className="space-y-1.5">
+                            <Label className="text-xs font-bold text-gray-700">Select Booking ID</Label>
+                            <UISelect value={selectedBookingId} onValueChange={setSelectedBookingId}>
+                                <SelectTrigger className="h-10 rounded-xl text-xs font-bold">
+                                    <SelectValue placeholder={isLoadingTrips ? "Loading bookings..." : "Select a booking"} />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {trips.map((trip: any) => (
+                                        <SelectItem key={trip._id} value={trip._id} className="text-xs font-bold">
+                                            {trip.id || trip._id} {trip.sender?.name ? `(${trip.sender.name}${trip.sender?.email ? ` - ${trip.sender.email}` : ''})` : ""}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </UISelect>
+                        </div>
+
+                        {selectedTrip && (
+                            <div className="p-3 bg-gray-50 rounded-xl border border-gray-100 space-y-2 text-xs mt-2">
+                                <div className="grid grid-cols-2 gap-2">
+                                    <div>
+                                        <span className="block text-gray-500 font-bold uppercase text-[10px]">User / Sender</span>
+                                        <span className="font-semibold text-gray-900 truncate block max-w-full">
+                                            {selectedTrip.sender?.name || selectedTrip.user?.name || "N/A"}
+                                            {(selectedTrip.sender?.email || selectedTrip.user?.email) ? ` (${selectedTrip.sender?.email || selectedTrip.user?.email})` : ""}
+                                        </span>
+                                    </div>
+                                    <div>
+                                        <span className="block text-gray-500 font-bold uppercase text-[10px]">Transporter / Driver</span>
+                                        <span className="font-semibold text-gray-900 truncate block max-w-full">{selectedTrip.transporter?.name || selectedTrip.driver?.name || "N/A"}</span>
+                                    </div>
+                                </div>
+                                <div className="pt-1">
+                                    <span className="block text-gray-500 font-bold uppercase text-[10px]">Destination</span>
+                                    <span className="font-semibold text-gray-900 truncate block max-w-full">{selectedTrip.dropoff_address || selectedTrip.destination?.address || "N/A"}</span>
+                                </div>
+                            </div>
+                        )}
+
+                        <div className="space-y-1.5">
+                            <Label className="text-xs font-bold text-gray-700">Priority</Label>
+                            <UISelect value={ticketPriority} onValueChange={setTicketPriority}>
+                                <SelectTrigger className="h-10 rounded-xl text-xs font-bold">
+                                    <SelectValue placeholder="Select priority" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="low" className="text-xs font-bold">Low</SelectItem>
+                                    <SelectItem value="medium" className="text-xs font-bold">Medium</SelectItem>
+                                    <SelectItem value="high" className="text-xs font-bold">High</SelectItem>
+                                </SelectContent>
+                            </UISelect>
+                        </div>
+                    </div>
+                    <DialogFooter className="gap-2 pt-2 border-t border-gray-100">
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => setIsTicketModalOpen(false)}
+                            className="h-10 rounded-xl font-bold text-xs"
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            type="button"
+                            onClick={handleCreateTicket}
+                            disabled={isCreatingTicket}
+                            className="bg-[#0052FF] hover:bg-[#0041CC] text-white h-10 rounded-xl font-bold text-xs px-6"
+                        >
+                            {isCreatingTicket ? (
+                                <>
+                                    <RefreshCw className="w-3.5 h-3.5 animate-spin mr-1.5" />
+                                    <span>Creating...</span>
+                                </>
+                            ) : (
+                                <span>Create Ticket</span>
                             )}
                         </Button>
                     </DialogFooter>
