@@ -47,6 +47,7 @@ import {
     useSendMessageMutation,
     useGetTicketsByReportQuery,
     useCreateTicketMutation,
+    useRefundReportMutation,
     TicketItem
 } from "@/redux/apiSlices/supportSlice";
 import { useProfileQuery } from "@/redux/apiSlices/authSlice";
@@ -72,13 +73,15 @@ interface LocalMessage {
 
 export default function TicketDetailsContent({ id }: { id: string }) {
     const showError = useErrorToast();
-    const [note, setNote] = useState("");
+
     const [messageInput, setMessageInput] = useState("");
 
     // Refund state
     const [isRefundModalOpen, setIsRefundModalOpen] = useState(false);
     const [refundAmount, setRefundAmount] = useState("");
+    const [refundReason, setRefundReason] = useState("");
     const [isRefunding, setIsRefunding] = useState(false);
+    const [refundReport] = useRefundReportMutation();
 
     // File upload states
     const [selectedImages, setSelectedImages] = useState<File[]>([]);
@@ -193,16 +196,23 @@ export default function TicketDetailsContent({ id }: { id: string }) {
     // Handle Refund Action
     const handleRefundSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!refundAmount) return;
+        if (!refundAmount || !report) return;
         setIsRefunding(true);
         try {
-            // Wait for backend integration, for now just simulate
-            await new Promise((resolve) => setTimeout(resolve, 1000));
-            toast.success(`Refund of $${refundAmount} processed successfully.`);
+            const payload = {
+                report: report._id,
+                amount: Number(refundAmount),
+                reason: refundReason,
+            };
+            const res = await refundReport(payload).unwrap();
+            console.log(res);
+            toast.success(res?.message || `Refund of $${refundAmount} processed successfully.`);
             setIsRefundModalOpen(false);
             setRefundAmount("");
+            setRefundReason("");
+            refetchReport();
         } catch (error) {
-            toast.error("Failed to process refund.");
+            showError(error);
         } finally {
             setIsRefunding(false);
         }
@@ -268,12 +278,7 @@ export default function TicketDetailsContent({ id }: { id: string }) {
         }
     };
 
-    // Add private note simulated
-    const handleSaveNote = () => {
-        if (!note.trim()) return;
-        toast.success("Internal note saved successfully!");
-        setNote("");
-    };
+
 
     const isLoading = isLoadingReport || (report?.chat && isLoadingMessages);
 
@@ -301,7 +306,7 @@ export default function TicketDetailsContent({ id }: { id: string }) {
     const isPayment = report.report_type?.toLowerCase().includes("payment");
 
     return (
-        <div className="p-6 md:p-8 space-y-8 bg-[#F8FAFC] min-h-screen">
+        <div className="p-6 md:p-8 md:pb-0 space-y-8 bg-[#F8FAFC] min-h-[calc(100vh-50px)]">
             {/* Hidden Input Selectors */}
             <input
                 type="file"
@@ -536,6 +541,7 @@ export default function TicketDetailsContent({ id }: { id: string }) {
                             )}
 
                             <Textarea
+                                id="message-input"
                                 placeholder={`Type your reply to ${report.user?.name || "User"}...`}
                                 className="bg-transparent border-none focus-visible:ring-0 min-h-[80px] text-xs font-bold resize-none placeholder:text-gray-500"
                                 value={messageInput}
@@ -590,7 +596,7 @@ export default function TicketDetailsContent({ id }: { id: string }) {
                 </div>
 
                 {/* Sidebar */}
-                <div className="xl:col-span-4 space-y-6">
+                <div className="xl:col-span-4 space-y-6 h-[680px] overflow-y-auto scrollbar-thin pr-2 pb-4">
 
                     {/* Ticket Metadata */}
                     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-5">
@@ -622,6 +628,105 @@ export default function TicketDetailsContent({ id }: { id: string }) {
                         </div>
                     </div>
 
+                    {/* Booking Info */}
+                    {report.booking && (
+                        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-4">
+                            <h2 className="text-xs font-bold text-gray-900 uppercase tracking-widest border-b border-gray-100 pb-3">
+                                Booking Info
+                            </h2>
+                            <div className="space-y-3 text-xs font-medium text-gray-600">
+                                <div className="flex justify-between items-center">
+                                    <span>Booking ID</span>
+                                    <span className="font-bold text-gray-900 truncate max-w-[150px]">{report.booking.id}</span>
+                                </div>
+                                <div className="flex justify-between items-center">
+                                    <span>Package Type</span>
+                                    <span className="font-bold text-gray-900">{report.booking.package_type}</span>
+                                </div>
+                                <div className="flex justify-between items-center">
+                                    <span>Weight</span>
+                                    <span className="font-bold text-gray-900">{report.booking.weight} kg</span>
+                                </div>
+                                <div className="flex justify-between items-center">
+                                    <span>Pickup</span>
+                                    <span className="font-bold text-gray-900 truncate max-w-[120px]" title={report.booking.pickup_address}>{report.booking.pickup_address}</span>
+                                </div>
+                                <div className="flex justify-between items-center">
+                                    <span>Dropoff</span>
+                                    <span className="font-bold text-gray-900 truncate max-w-[120px]" title={report.booking.dropoff_address}>{report.booking.dropoff_address}</span>
+                                </div>
+                                <div className="flex justify-between items-center">
+                                    <span>Status</span>
+                                    <Badge className="bg-gray-100 text-gray-700 font-bold uppercase text-[9px] px-2 border-none">
+                                        {report.booking.status}
+                                    </Badge>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Trip Info */}
+                    {report.trip && (
+                        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-4">
+                            <h2 className="text-xs font-bold text-gray-900 uppercase tracking-widest border-b border-gray-100 pb-3">
+                                Trip Info
+                            </h2>
+                            <div className="space-y-3 text-xs font-medium text-gray-600">
+                                <div className="flex justify-between items-center">
+                                    <span>Trip ID</span>
+                                    <span className="font-bold text-gray-900 truncate max-w-[150px]">{report.trip.id}</span>
+                                </div>
+                                <div className="flex justify-between items-center">
+                                    <span>Transport Type</span>
+                                    <span className="font-bold text-gray-900">{report.trip.transport_type}</span>
+                                </div>
+                                <div className="flex justify-between items-center">
+                                    <span>Departure</span>
+                                    <span className="font-bold text-gray-900 truncate max-w-[120px]" title={report.trip.departure_address}>{report.trip.departure_address}</span>
+                                </div>
+                                <div className="flex justify-between items-center">
+                                    <span>Return</span>
+                                    <span className="font-bold text-gray-900 truncate max-w-[120px]" title={report.trip.return_address}>{report.trip.return_address}</span>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Transporter Info */}
+                    {report.transporter && (
+                        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-4">
+                            <h2 className="text-xs font-bold text-gray-900 uppercase tracking-widest border-b border-gray-100 pb-3">
+                                Transporter Info
+                            </h2>
+                            <div className="space-y-3 text-xs font-medium text-gray-600">
+                                <div className="flex justify-between items-center">
+                                    <span>Name</span>
+                                    <span className="font-bold text-gray-900">{report.transporter.name}</span>
+                                </div>
+                                <div className="flex justify-between items-center">
+                                    <span>Email</span>
+                                    <span className="font-bold text-gray-900 truncate max-w-[150px]" title={report.transporter.email}>{report.transporter.email}</span>
+                                </div>
+                                <div className="flex justify-between items-center">
+                                    <span>Contact</span>
+                                    <span className="font-bold text-gray-900">{report.transporter.contact || "N/A"}</span>
+                                </div>
+                                <Button
+                                    onClick={() => {
+                                        const input = document.getElementById("message-input");
+                                        if (input) {
+                                            input.focus();
+                                        }
+                                    }}
+                                    className="w-full bg-blue-50 text-blue-600 hover:bg-blue-100 h-9 rounded-xl text-xs font-bold transition-colors mt-2"
+                                >
+                                    Message Transporter
+                                </Button>
+                            </div>
+                        </div>
+                    )}
+
+
                     {/* Evidence Vault */}
                     {report.attachments && report.attachments.length > 0 && (
                         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-5">
@@ -643,27 +748,6 @@ export default function TicketDetailsContent({ id }: { id: string }) {
                         </div>
                     )}
 
-                    {/* Internal Agent Notes */}
-                    <div className="bg-slate-100/60 rounded-2xl p-6 space-y-4 border border-slate-200/50">
-                        <div className="flex items-center gap-2">
-                            <Lock className="w-4 h-4 text-slate-800" />
-                            <h2 className="text-xs font-bold text-gray-900 uppercase tracking-widest">Internal Agent Notes</h2>
-                        </div>
-                        <div className="space-y-3">
-                            <Textarea
-                                placeholder="Add a private note only visible to team members..."
-                                className="bg-white border-gray-200 rounded-xl min-h-[90px] p-3 text-xs font-bold placeholder:text-gray-500 shadow-sm"
-                                value={note}
-                                onChange={(e) => setNote(e.target.value)}
-                            />
-                            <Button
-                                onClick={handleSaveNote}
-                                className="w-full bg-[#1A202C] hover:bg-black text-white font-bold h-10 rounded-xl transition-all text-xs"
-                            >
-                                Save Note
-                            </Button>
-                        </div>
-                    </div>
                 </div>
             </div>
 
@@ -693,6 +777,16 @@ export default function TicketDetailsContent({ id }: { id: string }) {
                                     required
                                 />
                             </div>
+                        </div>
+                        <div className="space-y-2">
+                            <Label className="font-bold text-gray-700">Refund Reason</Label>
+                            <Textarea
+                                value={refundReason}
+                                onChange={(e) => setRefundReason(e.target.value)}
+                                placeholder="Enter the reason for the refund..."
+                                className="resize-none font-bold placeholder:font-normal"
+                                required
+                            />
                         </div>
                         <DialogFooter className="mt-6">
                             <Button type="button" variant="outline" onClick={() => setIsRefundModalOpen(false)}>

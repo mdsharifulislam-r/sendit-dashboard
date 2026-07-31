@@ -22,6 +22,7 @@ import {
     Info,
     Eye
 } from "lucide-react";
+import { Pagination } from "antd";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -85,6 +86,7 @@ import { useGetTransactionsStatsQuery, useGetTransactionsListQuery } from "@/red
 export default function PaymentWalletPage() {
     const [activeTab, setActiveTab] = useState<"transactions" | "withdrawals">("transactions");
     const [searchTerm, setSearchTerm] = useState("");
+    const [page, setPage] = useState(1);
     const [showManualAction, setShowManualAction] = useState(false);
     const [manualActionType, setManualActionType] = useState<string>("");
     const [selectedUserForAction, setSelectedUserForAction] = useState<any>(null);
@@ -98,10 +100,13 @@ export default function PaymentWalletPage() {
     const { data: statsResponse } = useGetTransactionsStatsQuery(undefined);
     const { data: listResponse, isLoading } = useGetTransactionsListQuery({
         withdraw: activeTab === "withdrawals",
-        searchTerm
+        searchTerm,
+        page,
+        limit: 10
     });
     const statsData = statsResponse?.data;
     const transactionsList = listResponse?.data || [];
+    const meta = listResponse?.meta;
 
     // Mock Users for Search
     const mockUsers = [
@@ -241,7 +246,14 @@ export default function PaymentWalletPage() {
             </div>
 
             {/* Main Content Area */}
-            <Tabs defaultValue="transactions" onValueChange={(v) => setActiveTab(v as any)} className="space-y-6">
+            <Tabs 
+                defaultValue="transactions" 
+                onValueChange={(v) => {
+                    setActiveTab(v as any);
+                    setPage(1);
+                }} 
+                className="space-y-6"
+            >
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-2 rounded-2xl border border-gray-100 shadow-sm">
                     <TabsList className="bg-transparent border-none p-0 gap-2">
                         <TabsTrigger
@@ -372,6 +384,17 @@ export default function PaymentWalletPage() {
                                 )}
                             </TableBody>
                         </Table>
+                        {meta?.total && meta.total > 0 ? (
+                            <div className="flex justify-end p-4 border-t border-gray-100 bg-white">
+                                <Pagination
+                                    current={page}
+                                    pageSize={meta.limit || 10}
+                                    total={meta.total}
+                                    onChange={(newPage) => setPage(newPage)}
+                                    showSizeChanger={false}
+                                />
+                            </div>
+                        ) : null}
                     </div>
                 </TabsContent>
 
@@ -450,6 +473,17 @@ export default function PaymentWalletPage() {
                                 )}
                             </TableBody>
                         </Table>
+                        {meta?.total && meta.total > 0 ? (
+                            <div className="flex justify-end p-4 border-t border-gray-100 bg-white">
+                                <Pagination
+                                    current={page}
+                                    pageSize={meta.limit || 10}
+                                    total={meta.total}
+                                    onChange={(newPage) => setPage(newPage)}
+                                    showSizeChanger={false}
+                                />
+                            </div>
+                        ) : null}
                     </div>
                 </TabsContent>
             </Tabs>

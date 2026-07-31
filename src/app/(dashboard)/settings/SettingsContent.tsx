@@ -209,12 +209,12 @@ export default function SettingsPage() {
           </div>
         </div>
 
-        {/* Discount & Referral Management - Full Column */}
+        {/* Discount Management - Full Column */}
         <div className="lg:col-span-3 bg-white p-8 rounded-xl border border-gray-100 shadow-sm space-y-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
-              <h2 className="text-lg font-bold text-gray-900">Discount & Referral Management</h2>
-              <p className="text-xs text-gray-600 font-bold mt-0.5">Manage promotional codes, referral programs, and track redemption performance.</p>
+              <h2 className="text-lg font-bold text-gray-900">Discount Management</h2>
+              <p className="text-xs text-gray-600 font-bold mt-0.5">Manage promotional codes and track redemption performance.</p>
             </div>
             <Link
               href="/settings/discount-referral-management"
@@ -241,7 +241,7 @@ export default function SettingsPage() {
               <ChevronRight className="w-4 h-4 text-gray-400 group-hover:translate-x-0.5 transition-transform" />
             </Link>
 
-            <Link
+            {/* <Link
               href="/settings/discount-referral-management"
               className="flex items-center justify-between p-4 rounded-xl border border-gray-100 hover:bg-gray-50 transition-all text-left group"
             >
@@ -255,7 +255,7 @@ export default function SettingsPage() {
                 </div>
               </div>
               <ChevronRight className="w-4 h-4 text-gray-400 group-hover:translate-x-0.5 transition-transform" />
-            </Link>
+            </Link> */}
 
             {/* <Link
               href="/settings/code-usage"

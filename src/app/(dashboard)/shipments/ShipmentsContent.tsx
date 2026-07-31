@@ -6,14 +6,17 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Search } from "lucide-react";
 import Link from "next/link";
+import { Pagination } from "antd";
 
 import { useGetAlltripsQuery } from "@/redux/apiSlices/tripsSlice";
 
 export default function ShipmentsContent() {
     const [searchTerm, setSearchTerm] = useState("");
-    const { data: tripsResponse, isLoading } = useGetAlltripsQuery({ searchTerm });
+    const [page, setPage] = useState(1);
+    
+    const { data: tripsResponse, isLoading } = useGetAlltripsQuery({ searchTerm, page, limit: 10 });
     const tripsList = tripsResponse?.data || [];
-;
+    const meta = tripsResponse?.meta;
 
     const getRiskBadgeClass = (risk: string) => {
         return risk.toLowerCase() === 'flagged' 
@@ -136,6 +139,17 @@ export default function ShipmentsContent() {
                         )}
                     </tbody>
                 </table>
+                {meta?.total && meta.total > 0 ? (
+                    <div className="flex justify-end p-4 border-t border-gray-100 bg-white">
+                        <Pagination
+                            current={page}
+                            pageSize={meta.limit || 10}
+                            total={meta.total}
+                            onChange={(newPage) => setPage(newPage)}
+                            showSizeChanger={false}
+                        />
+                    </div>
+                ) : null}
             </div>
         </div>
     );

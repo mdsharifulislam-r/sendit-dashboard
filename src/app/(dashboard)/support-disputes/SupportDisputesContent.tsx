@@ -1,24 +1,18 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Search, Filter, RefreshCw, Eye, AlertTriangle, ShieldCheck, Ticket, User, HelpCircle, XCircle, Trash2, Plus } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
-import { useGetReportsQuery, useUpdateReportStatusMutation, useDeleteReportMutation, useCreateTicketMutation, ReportItem } from "@/redux/apiSlices/supportSlice";
+import { useGetReportsQuery, useUpdateReportStatusMutation, useDeleteReportMutation, useCreateAdminReportMutation, ReportItem } from "@/redux/apiSlices/supportSlice";
 import { toast } from "sonner";
 import { useErrorToast } from "@/hooks/useErrorToast";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import {
-    Select as UISelect,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from "@/components/ui/select";
-import { useGetAlltripsQuery } from "@/redux/apiSlices/tripsSlice";
+
+import { useSearchUserInfoQuery } from "@/redux/apiSlices/usersSlice";
 import { Table, ConfigProvider } from "antd";
 import type { TableProps } from "antd";
 import {
@@ -44,14 +38,28 @@ export default function SupportDisputesContent() {
     const [ticketTitle, setTicketTitle] = useState("");
     const [ticketDesc, setTicketDesc] = useState("");
     const [selectedBookingId, setSelectedBookingId] = useState("");
-    const [ticketPriority, setTicketPriority] = useState("medium");
+    const [userSearchTerm, setUserSearchTerm] = useState("");
+    const [debouncedUserSearchTerm, setDebouncedUserSearchTerm] = useState("");
+    const [selectedUserId, setSelectedUserId] = useState("");
 
-    // Fetch Trips/Bookings for Dropdown
-    const { data: tripsResponse, isLoading: isLoadingTrips } = useGetAlltripsQuery({ limit: 100 });
-    const trips = tripsResponse?.data || [];
-    const selectedTrip = useMemo(() => trips.find((t: any) => t.id === selectedBookingId || t._id === selectedBookingId), [trips, selectedBookingId]);
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setDebouncedUserSearchTerm(userSearchTerm);
+        }, 500);
+        return () => clearTimeout(timer);
+    }, [userSearchTerm]);
 
-    const [createTicket, { isLoading: isCreatingTicket }] = useCreateTicketMutation();
+    const { data: userSearchResponse, isFetching: isSearchingUsers } = useSearchUserInfoQuery(debouncedUserSearchTerm, {
+        skip: !debouncedUserSearchTerm || debouncedUserSearchTerm.length < 2,
+    });
+
+    const searchedUsers = Array.isArray(userSearchResponse?.data)
+        ? userSearchResponse.data
+        : (userSearchResponse?.data ? [userSearchResponse.data] : []);
+
+    const [createAdminReport, { isLoading: isCreatingTicket }] = useCreateAdminReportMutation();
+
+
 
     // Fetch reports from API using RTK query pagination
     const { data: reportsResponse, isLoading, isFetching, refetch } = useGetReportsQuery({
@@ -101,21 +109,30 @@ export default function SupportDisputesContent() {
                 toast.error("Please select a Booking ID");
                 return;
             }
-            const res = await createTicket({
-                title: ticketTitle,
-                description: ticketDesc,
-                booking: selectedBookingId,
-                report: "", // Root ticket
-                priority: ticketPriority,
-            }).unwrap();
+            if (!selectedUserId) {
+                toast.error("Please select a User");
+                return;
+            }
+            console.log(ticketTitle, ticketDesc, selectedBookingId, selectedUserId);
+            const body = {
+                "report_type": ticketTitle,
+                "description": ticketDesc,
+                "booking": selectedBookingId,
+                "user": selectedUserId
+            }
+            const res = await createAdminReport(body).unwrap();
+            console.log(res);
             toast.success(res?.message || "Ticket created successfully!");
             setIsTicketModalOpen(false);
             setTicketTitle("");
             setTicketDesc("");
             setSelectedBookingId("");
-            setTicketPriority("medium");
+            setSelectedUserId("");
+            setUserSearchTerm("");
+            setDebouncedUserSearchTerm("");
             refetch();
         } catch (error: any) {
+            toast.error(error?.data?.message || "Failed to create ticket");
             showError(error);
         }
     };
@@ -277,7 +294,7 @@ export default function SupportDisputesContent() {
                 return (
                     <div className="flex items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>
                         {/* View Details Button - Icon Only */}
-                        <Link 
+                        <Link
                             href={`/support-disputes/${record._id}`}
                             className="inline-flex items-center justify-center w-8 h-8 rounded-full border border-blue-200 bg-white text-blue-600 hover:bg-blue-50 transition-all shadow-sm"
                             title="View Ticket Details"
@@ -377,9 +394,8 @@ export default function SupportDisputesContent() {
                         dataSource={filteredReports}
                         rowKey={(record) => record._id}
                         loading={isLoading || isFetching}
-                        rowClassName={(record) => 
-                            `cursor-pointer transition-colors ${
-                                selectedTicket?._id === record._id ? "bg-blue-50/40 font-medium" : ""
+                        rowClassName={(record) =>
+                            `cursor-pointer transition-colors ${selectedTicket?._id === record._id ? "bg-blue-50/40 font-medium" : ""
                             }`
                         }
                         onRow={(record) => ({
@@ -479,7 +495,7 @@ export default function SupportDisputesContent() {
                             <Label className="text-xs font-bold text-gray-700">Ticket Title</Label>
                             <Input
                                 placeholder="e.g. Payment Failed"
-                                className="h-10 rounded-xl text-xs font-semibold"
+                                className="w-full h-12 rounded-xl text-xs font-semibold"
                                 value={ticketTitle}
                                 onChange={(e) => setTicketTitle(e.target.value)}
                             />
@@ -493,57 +509,54 @@ export default function SupportDisputesContent() {
                                 onChange={(e) => setTicketDesc(e.target.value)}
                             />
                         </div>
-                        
+
                         <div className="space-y-1.5">
-                            <Label className="text-xs font-bold text-gray-700">Select Booking ID</Label>
-                            <UISelect value={selectedBookingId} onValueChange={setSelectedBookingId}>
-                                <SelectTrigger className="h-10 rounded-xl text-xs font-bold">
-                                    <SelectValue placeholder={isLoadingTrips ? "Loading bookings..." : "Select a booking"} />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {trips.map((trip: any) => (
-                                        <SelectItem key={trip._id} value={trip._id} className="text-xs font-bold">
-                                            {trip.id || trip._id} {trip.sender?.name ? `(${trip.sender.name}${trip.sender?.email ? ` - ${trip.sender.email}` : ''})` : ""}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </UISelect>
+                            <Label className="text-xs font-bold text-gray-700">Booking ID</Label>
+                            <Input
+                                placeholder="Enter booking ID..."
+                                className="w-full h-12 rounded-xl text-xs font-semibold"
+                                value={selectedBookingId}
+                                onChange={(e) => setSelectedBookingId(e.target.value)}
+                            />
                         </div>
 
-                        {selectedTrip && (
-                            <div className="p-3 bg-gray-50 rounded-xl border border-gray-100 space-y-2 text-xs mt-2">
-                                <div className="grid grid-cols-2 gap-2">
-                                    <div>
-                                        <span className="block text-gray-500 font-bold uppercase text-[10px]">User / Sender</span>
-                                        <span className="font-semibold text-gray-900 truncate block max-w-full">
-                                            {selectedTrip.sender?.name || selectedTrip.user?.name || "N/A"}
-                                            {(selectedTrip.sender?.email || selectedTrip.user?.email) ? ` (${selectedTrip.sender?.email || selectedTrip.user?.email})` : ""}
-                                        </span>
-                                    </div>
-                                    <div>
-                                        <span className="block text-gray-500 font-bold uppercase text-[10px]">Transporter / Driver</span>
-                                        <span className="font-semibold text-gray-900 truncate block max-w-full">{selectedTrip.transporter?.name || selectedTrip.driver?.name || "N/A"}</span>
-                                    </div>
-                                </div>
-                                <div className="pt-1">
-                                    <span className="block text-gray-500 font-bold uppercase text-[10px]">Destination</span>
-                                    <span className="font-semibold text-gray-900 truncate block max-w-full">{selectedTrip.dropoff_address || selectedTrip.destination?.address || "N/A"}</span>
-                                </div>
-                            </div>
-                        )}
-
                         <div className="space-y-1.5">
-                            <Label className="text-xs font-bold text-gray-700">Priority</Label>
-                            <UISelect value={ticketPriority} onValueChange={setTicketPriority}>
-                                <SelectTrigger className="h-10 rounded-xl text-xs font-bold">
-                                    <SelectValue placeholder="Select priority" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="low" className="text-xs font-bold">Low</SelectItem>
-                                    <SelectItem value="medium" className="text-xs font-bold">Medium</SelectItem>
-                                    <SelectItem value="high" className="text-xs font-bold">High</SelectItem>
-                                </SelectContent>
-                            </UISelect>
+                            <Label className="text-xs font-bold text-gray-700">Search User</Label>
+                            <Input
+                                placeholder="Search by name or email..."
+                                className="w-full h-12 rounded-xl text-xs font-semibold"
+                                value={userSearchTerm}
+                                onChange={(e) => {
+                                    setUserSearchTerm(e.target.value);
+                                    if (!e.target.value) setSelectedUserId("");
+                                }}
+                            />
+                            {debouncedUserSearchTerm.length >= 2 && (
+                                <div className="mt-2">
+                                    {isSearchingUsers ? (
+                                        <p className="text-[11px] text-gray-500">Searching...</p>
+                                    ) : searchedUsers.length > 0 ? (
+                                        <div className="flex flex-col gap-1 max-h-32 overflow-y-auto border border-gray-100 rounded-xl p-1 bg-gray-50">
+                                            {searchedUsers.map((u: any) => (
+                                                <div
+                                                    key={u._id}
+                                                    onClick={() => {
+                                                        setSelectedUserId(u._id);
+                                                        setUserSearchTerm(u.name || u.email);
+                                                        setDebouncedUserSearchTerm("");
+                                                    }}
+                                                    className={`p-2 rounded-lg text-xs font-semibold cursor-pointer flex flex-col gap-0.5 transition-colors ${selectedUserId === u._id ? 'bg-blue-100 border border-blue-200' : 'bg-white hover:bg-gray-100 border border-gray-100'}`}
+                                                >
+                                                    <span className="text-gray-900">{u.name}</span>
+                                                    <span className="text-[10px] text-gray-500 font-medium">{u.email}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <p className="text-[11px] text-gray-500">No user found.</p>
+                                    )}
+                                </div>
+                            )}
                         </div>
                     </div>
                     <DialogFooter className="gap-2 pt-2 border-t border-gray-100">

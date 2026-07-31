@@ -54,6 +54,12 @@ const usersSlice = api.injectEndpoints({
             invalidatesTags: ["Users"]
         }),
 
+        searchUserInfo: builder.query({
+            query: (searchTerm: string) => ({
+                url: `/user/user-info?searchTerm=${searchTerm}`,
+            })
+        }),
+
     }) 
 }) 
-export const {useGetAllUsersQuery, useGetUserByIdQuery, useUpdateApproveByIdMutation, useUpdateSuspendByIdMutation, useCreateUserMutation} = usersSlice
+export const {useGetAllUsersQuery, useGetUserByIdQuery, useUpdateApproveByIdMutation, useUpdateSuspendByIdMutation, useCreateUserMutation, useSearchUserInfoQuery} = usersSlice

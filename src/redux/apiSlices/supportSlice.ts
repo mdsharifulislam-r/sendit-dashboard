@@ -20,6 +20,9 @@ export interface ReportItem {
     report_id: string;
     __v?: number;
     chat?: string;
+    transporter?: any;
+    booking?: any;
+    trip?: any;
 }
 
 export interface GetReportsResponse {
@@ -188,6 +191,24 @@ export const supportSlice = api.injectEndpoints({
             }),
             invalidatesTags: (_result, _error, arg) => [{ type: "Support", id: `tickets-${arg.report}` }],
         }),
+
+        createAdminReport: builder.mutation<any, { report_type: string; description: string; booking: string; user: string }>({
+            query: (payload) => ({
+                url: "/report/admin-report",
+                method: "POST",
+                body: payload,
+            }),
+            invalidatesTags: ["Support"],
+        }),
+
+        refundReport: builder.mutation<any, { report: string; amount: number; reason: string }>({
+            query: (payload) => ({
+                url: "/report/refund",
+                method: "POST",
+                body: payload,
+            }),
+            invalidatesTags: ["Support"],
+        }),
     }),
 });
 
@@ -200,4 +221,6 @@ export const {
     useSendMessageMutation,
     useGetTicketsByReportQuery,
     useCreateTicketMutation,
+    useCreateAdminReportMutation,
+    useRefundReportMutation,
 } = supportSlice;
