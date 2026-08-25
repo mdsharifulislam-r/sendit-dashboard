@@ -773,13 +773,13 @@ export default function TicketDetailsContent({ id }: { id: string }) {
                         <div className="space-y-2">
                             <Label className="font-bold text-gray-700">Select User</Label>
                             <Select onValueChange={(val) => setSelectedUserId(val)} value={selectedUserId}>
-                                <SelectTrigger className="w-full font-bold">
+                                <SelectTrigger className="w-full bg-gray-50 border-gray-200 font-bold text-gray-700 rounded-md h-11">
                                     <SelectValue placeholder="Choose a user to refund" />
                                 </SelectTrigger>
                                 <SelectContent>
                                     {reportUsersResponse?.data?.map((u) => (
-                                        <SelectItem key={u._id} value={u._id}>
-                                            {u.name} {u.email ? `- ${u.email}` : ""}
+                                        <SelectItem key={u._id} value={u._id} className="font-bold">
+                                            <span className="truncate block">{u.name}{u.email ? ` - ${u.email}` : ""}</span>
                                         </SelectItem>
                                     ))}
                                 </SelectContent>
