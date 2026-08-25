@@ -102,6 +102,14 @@ export default function TicketDetailsContent({ id }: { id: string }) {
     const report = reportResponse?.data;
     const { data: reportUsersResponse } = useGetUsersOfReportQuery(report?._id!, { skip: !report?._id });
     const [page, setPage] = useState(1);
+    const uniqueReportUsers = useMemo(() => {
+        const arr = reportUsersResponse?.data || [];
+        const map = new Map<string, typeof arr[number]>();
+        arr.forEach((u) => {
+            if (!map.has(u._id)) map.set(u._id, u);
+        });
+        return Array.from(map.values());
+    }, [reportUsersResponse?.data]);
 
     // Fetch messages based on chatId and reportId
     const {
@@ -774,12 +782,12 @@ export default function TicketDetailsContent({ id }: { id: string }) {
                             <Label className="font-bold text-gray-700">Select User</Label>
                             <Select onValueChange={(val) => setSelectedUserId(val)} value={selectedUserId}>
                                 <SelectTrigger className="w-full bg-gray-50 border-gray-200 font-bold text-gray-700 rounded-md h-11">
-                                    <SelectValue placeholder="Choose a user to refund" />
+                                    <SelectValue className="truncate" placeholder="Choose a user to refund" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    {reportUsersResponse?.data?.map((u) => (
+                                    {uniqueReportUsers.map((u) => (
                                         <SelectItem key={u._id} value={u._id} className="font-bold">
-                                            <span className="truncate block">{u.name}{u.email ? ` - ${u.email}` : ""}</span>
+                                            <span className="truncate block">{u.name}{u.email ? ` — ${u.email}` : ""}</span>
                                         </SelectItem>
                                     ))}
                                 </SelectContent>
