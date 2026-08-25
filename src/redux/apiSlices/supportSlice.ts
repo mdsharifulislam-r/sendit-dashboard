@@ -128,6 +128,13 @@ export const supportSlice = api.injectEndpoints({
             providesTags: ["Support"],
         }),
 
+        getUsersOfReport: builder.query<{ success: boolean; data: ReportUser[] }, string>({
+            query: (reportId) => ({
+                url: `/report/${reportId}/users`,
+            }),
+            providesTags: (_result, _error, arg) => [{ type: "Support", id: `report-users-${arg}` }],
+        }),
+
         getSingleReport: builder.query<{ success: boolean; data: ReportItem }, string>({
             query: (id) => ({
                 url: `/report/${id}`,
@@ -201,13 +208,13 @@ export const supportSlice = api.injectEndpoints({
             invalidatesTags: ["Support"],
         }),
 
-        refundReport: builder.mutation<any, { report: string; amount: number; reason: string }>({
+        refundReport: builder.mutation<any, { report: string; amount: number; reason: string; user_id?: string }>({
             query: (payload) => ({
                 url: "/report/refund",
                 method: "POST",
                 body: payload,
             }),
-            invalidatesTags: ["Support"],
+            invalidatesTags: (_result, _error, arg) => ["Support", { type: "Support", id: `report-${arg.report}` }],
         }),
     }),
 });
@@ -219,6 +226,7 @@ export const {
     useDeleteReportMutation,
     useGetMessagesQuery,
     useSendMessageMutation,
+    useGetUsersOfReportQuery,
     useGetTicketsByReportQuery,
     useCreateTicketMutation,
     useCreateAdminReportMutation,

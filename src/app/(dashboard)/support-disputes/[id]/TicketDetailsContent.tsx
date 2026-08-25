@@ -48,6 +48,7 @@ import {
     useGetTicketsByReportQuery,
     useCreateTicketMutation,
     useRefundReportMutation,
+    useGetUsersOfReportQuery,
     TicketItem
 } from "@/redux/apiSlices/supportSlice";
 import { useProfileQuery } from "@/redux/apiSlices/authSlice";
@@ -82,6 +83,7 @@ export default function TicketDetailsContent({ id }: { id: string }) {
     const [refundReason, setRefundReason] = useState("");
     const [isRefunding, setIsRefunding] = useState(false);
     const [refundReport] = useRefundReportMutation();
+    const [selectedUserId, setSelectedUserId] = useState<string | undefined>(undefined);
 
     // File upload states
     const [selectedImages, setSelectedImages] = useState<File[]>([]);
@@ -98,6 +100,7 @@ export default function TicketDetailsContent({ id }: { id: string }) {
     // Fetch report details
     const { data: reportResponse, isLoading: isLoadingReport, refetch: refetchReport } = useGetSingleReportQuery(id, { skip: !id });
     const report = reportResponse?.data;
+    const { data: reportUsersResponse } = useGetUsersOfReportQuery(report?._id!, { skip: !report?._id });
     const [page, setPage] = useState(1);
 
     // Fetch messages based on chatId and reportId
@@ -196,13 +199,17 @@ export default function TicketDetailsContent({ id }: { id: string }) {
     // Handle Refund Action
     const handleRefundSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!refundAmount || !report) return;
+        if (!refundAmount || !report || !selectedUserId) {
+            toast.error("Please select a user to refund.");
+            return;
+        }
         setIsRefunding(true);
         try {
             const payload = {
                 report: report._id,
                 amount: Number(refundAmount),
                 reason: refundReason,
+                user_id: selectedUserId,
             };
             const res = await refundReport(payload).unwrap();
             console.log(res);
@@ -210,6 +217,7 @@ export default function TicketDetailsContent({ id }: { id: string }) {
             setIsRefundModalOpen(false);
             setRefundAmount("");
             setRefundReason("");
+            setSelectedUserId(undefined);
             refetchReport();
         } catch (error) {
             showError(error);
@@ -543,7 +551,7 @@ export default function TicketDetailsContent({ id }: { id: string }) {
                             <Textarea
                                 id="message-input"
                                 placeholder={`Type your reply to ${report.user?.name || "User"}...`}
-                                className="bg-transparent border-none focus-visible:ring-0 min-h-[80px] text-xs font-bold resize-none placeholder:text-gray-500"
+                                className="bg-transparent border-none focus-visible:ring-0 min-h-20 text-xs font-bold resize-none placeholder:text-gray-500"
                                 value={messageInput}
                                 onChange={(e) => setMessageInput(e.target.value)}
                             />
@@ -762,6 +770,21 @@ export default function TicketDetailsContent({ id }: { id: string }) {
                         </DialogDescription>
                     </DialogHeader>
                     <form onSubmit={handleRefundSubmit} className="space-y-4 mt-4">
+                        <div className="space-y-2">
+                            <Label className="font-bold text-gray-700">Select User</Label>
+                            <Select onValueChange={(val) => setSelectedUserId(val)} value={selectedUserId}>
+                                <SelectTrigger className="w-full font-bold">
+                                    <SelectValue placeholder="Choose a user to refund" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {reportUsersResponse?.data?.map((u) => (
+                                        <SelectItem key={u._id} value={u._id}>
+                                            {u.name} {u.email ? `- ${u.email}` : ""}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
                         <div className="space-y-2">
                             <Label className="font-bold text-gray-700">Refund Amount</Label>
                             <div className="relative">
